@@ -1,0 +1,39 @@
+# @package _global_
+
+global:
+  version: "001"
+  comment: "
+  lagを追加
+  "
+  input_dir: ../../input/
+  seed: 42
+  debug: True
+
+wandb:
+  init:  
+    project: numerai
+    entity: kuto5046
+    group: exp001  # フォルダ名
+    tags:
+      - baseline
+      - lightgbm
+
+cv:
+  _target_: sklearn.model_selection.StratifiedKFold
+  n_splits: 5
+  shuffle: True
+  random_state: ${global.seed}
+
+model:
+  params:
+    boosting_type: gbdt
+    objective" : regression
+    metric: rmse
+    colsample_bytree: 0.8
+    max_depth: 5
+    subsample: 0.8
+    min_child_weight: 1
+    seed: 42
+    learning_rate: 0.05
+    saved_feature_importance_type: 1  # gain
+    verbose: -1
