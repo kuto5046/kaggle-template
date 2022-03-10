@@ -14,22 +14,20 @@ import random
 import joblib
 import itertools
 import warnings
-
-from src.visualize import plot_importance
-warnings.filterwarnings("ignore")
+# warnings.filterwarnings("ignore")
 import logzero
 import scipy as sp
 import numpy as np
 import pandas as pd
-pd.set_option('display.max_rows', 500)
-pd.set_option('display.max_columns', 500)
-pd.set_option('display.width', 1000)
 from tqdm.auto import tqdm
 from sklearn.metrics import f1_score
 from sklearn.model_selection import StratifiedKFold, GroupKFold, KFold
-
+sys.path.append("../../")
+from src.visualize import plot_importance
 from src.models import LGBModel, XGBModel, CBModel
 from src.visualize import plot_importance
+from src.features.base import get_category_col, get_num_col
+from src.features.encode import ordinal_encoder
 import lightgbm as lgb 
 from lightgbm import early_stopping, log_evaluation, register_logger
 import wandb 
@@ -40,7 +38,7 @@ from omegaconf import DictConfig
 from sklearn.metrics import mean_squared_error
 
 
-def train_pipeline(cv, train, test, feature_cols, target_col, categorical_cols, config):
+def train_pipeline(train, test, cv, feature_cols, target_col, categorical_cols, config):
     oofs = []
     preds = []
     for fold, (idx_train, idx_valid) in enumerate(cv):
@@ -103,16 +101,20 @@ def main(config: DictConfig):
     ############
     # read data
     ############
-    train = pd.read_csv(INPUT_DIR + 'test.csv')
-    test = pd.read_csv(INPUT_DIR + 'train.csv')
+    train = pd.read_csv(INPUT_DIR + 'train.csv')
+    test = pd.read_csv(INPUT_DIR + 'test.csv')
+    train['is_test'] = False
+    test['is_test'] = True
+    whole = pd.concat([train, test])
 
     ############
     # feature engineering
     ############
-    target_col = 'target'
-    feature_cols = []
-    categorical_cols = []
-
+    target_col = 'avg_views/day'
+    categorical_cols = get_category_col(train)
+    numerical_cols = get_num_col(train)
+    whole = ordinal_encoder(whole, categorical_cols)
+    whole.to_csv(get_original_cwd() + "/whole.csv")
     ############
     # CV
     ############

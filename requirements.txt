@@ -1,0 +1,23 @@
+# visualize
+plotly
+seaborn
+
+# kaggle
+kaggle
+wandb
+jupyterlab
+lightgbm
+xgboost 
+catboost
+pytorch-lightning
+hydra-core
+matplotlib-venn
+sweetviz
+category_encoders
+
+# nlp
+fasttext
+gensim
+
+# other
+logzero

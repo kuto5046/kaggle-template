@@ -3,15 +3,15 @@
 global:
   version: "001"
   comment: "
-  lagを追加
+  debug
   "
-  input_dir: ../../input/
+  input_dir: /home/user/work/input/data/
   seed: 42
   debug: True
 
 wandb:
   init:  
-    project: numerai
+    project: debug
     entity: kuto5046
     group: exp001  # フォルダ名
     tags:
@@ -19,8 +19,9 @@ wandb:
       - lightgbm
 
 cv:
-  _target_: sklearn.model_selection.StratifiedKFold
+  _target_: src.utils.ContinuousStratifiedFold
   n_splits: 5
+  q: 10
   shuffle: True
   random_state: ${global.seed}
 

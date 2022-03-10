@@ -4,7 +4,9 @@ __pycache__/
 *$py.class
 
 # C extensions
-*.so
+*.so/
+input
+.vscode
 
 # Distribution / packaging
 .Python
