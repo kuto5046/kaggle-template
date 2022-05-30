@@ -1,9 +1,41 @@
 # Gistから必要なスニペットを取ってくる
 # https://gist.github.com/kuto5046
+import json
+import os
+import subprocess
+import sys
+from datetime import datetime
+
+import hydra
+import numpy as np
 import pandas as pd
-import numpy as np 
+import requests
+# .env ファイルをロードして環境変数へ反映
+from dotenv import load_dotenv
 
+load_dotenv()
 
+class Config():
+    """
+    hydraによる設定値の取得
+    scriptの時はデコレータの方が簡単なのでこちらは使わずnotebookの時に使用することを想定
+    """
+    @staticmethod
+    def get_cnf(config_path, config_name):
+        """
+        設定値の辞書を取得
+        @return
+            cnf: OmegaDict
+        """
+        config_dir = os.path.join(os.getcwd(), config_path)
+        if not os.path.isdir(config_dir):
+            print(f"Can not find file: {config_dir}.")
+            sys.exit(-1)
+        with hydra.initialize_config_dir(config_dir=config_dir, version_base=None, job_name='exp'):
+            cnf = hydra.compose(config_name=config_name)
+            return cnf
+
+    
 def reduce_mem_usage(df):
     """ iterate through all the columns of a dataframe and modify the data type
         to reduce memory usage.        
@@ -41,3 +73,38 @@ def reduce_mem_usage(df):
     print('Decreased by {:.1f}%'.format(100 * (start_mem - end_mem) / start_mem))
 
     return df
+
+
+def get_hash(config):
+    """get git hash value(short ver.)
+    """
+    if config['globals']["kaggle"]:
+        # kaggle
+        hash_value = None
+    else:
+        # local
+        cmd = "git rev-parse --short HEAD"
+        hash_value = subprocess.check_output(cmd.split()).strip().decode('utf-8')
+    
+    return hash_value
+
+
+def get_timestamp():
+    # output config
+    return datetime.today().strftime("%m%d-%H%-M%-S")
+
+
+# 任意のメッセージを通知する関数
+def send_slack_message_notification(message):
+    webhook_url = os.environ['SLACK_WEBHOOK_URL']  
+    data = json.dumps({'text': message})
+    headers = {'content-type': 'application/json'}
+    requests.post(webhook_url, data=data, headers=headers)
+
+# errorを通知する関数
+def send_slack_error_notification(message):
+    webhook_url = os.environ['SLACK_WEBHOOK_URL']  
+    # no_entry_signは行き止まりの絵文字を出力
+    data = json.dumps({"text":":no_entry_sign:" + message})  
+    headers = {'content-type': 'application/json'}
+    requests.post(webhook_url, data=data, headers=headers)
