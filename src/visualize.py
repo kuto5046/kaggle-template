@@ -5,10 +5,14 @@ from typing import List
 import lightgbm as lgb 
 import numpy as np
 from matplotlib_venn import venn2
+import sweetviz as sv
+import pandas_profiling as pdp
 
-
-def pd_profiling(df:pd.DataFrame, output_dir: str):
-    import pandas_profiling as pdp
+def pd_profiling(df: pd.DataFrame, output_dir: str='./'):
+    """
+    usage:
+    pd_profiling(whole)
+    """
     profile = pdp.ProfileReport(df)
     profile.to_file(output_file=output_dir + "profile.html")
 
@@ -16,13 +20,14 @@ def pd_profiling(df:pd.DataFrame, output_dir: str):
 def sweetviz_report(
     train:pd.DataFrame, 
     test:pd.DataFrame, 
-    target_col:str, 
-    skip_cols:List[str], 
-    output_dir:str):
+    target_col:str=None, 
+    skip_cols:List[str]=[], 
+    output_dir:str='./'):
     """
-    https://github.com/fbdesignpro/sweetviz
+    usage:
+    sweetviz_report(train, test, target_col='target')
     """
-    import sweetviz as sv
+
     feature_config = sv.FeatureConfig(skip=skip_cols)
 
     my_report = sv.compare(
@@ -44,6 +49,7 @@ def plot_intersection(
     ax: plt.Axes = None, 
     set_labels: List[str]=None
     ):
+
     venn2(
         subsets=(get_uniques(left, target_column), get_uniques(right, target_column)),
         set_labels=set_labels or ("Train", "Test"),
@@ -51,7 +57,11 @@ def plot_intersection(
         )
     ax.set_title(target_column)
 
-def plot_venn(train:pd.DataFrame, test:pd.DataFrame, output_dir: str):
+def plot_venn(train:pd.DataFrame, test:pd.DataFrame, output_dir: str='./'):
+    """
+    usage:
+    plot_venn(train, test)
+    """
     target_columns = test.columns.tolist()
     n_cols = 5
     n_rows = - (- len(target_columns) // n_cols)
@@ -65,7 +75,7 @@ def plot_venn(train:pd.DataFrame, test:pd.DataFrame, output_dir: str):
 def plot_importance(
     models:List[lgb.Booster], 
     feat_train_df:pd.DataFrame, 
-    output_dir: str,
+    output_dir: str='./',
     top_n:int =50,
     ):
     """lightGBM の model 配列の feature importance を plot する
