@@ -1,5 +1,44 @@
 import pandas as pd 
 from sklearn.preprocessing import OrdinalEncoder, LabelEncoder 
+import numpy as np 
+from typing import List
+
+
+def get_non_overlapping(train: pd.DataFrame, test: pd.DataFrame, col: str):
+    """
+    train/testにしか出てこない値を調べる
+    """
+    only_in_train = set(train[col].unique()) - set(test[col].unique())
+    only_in_test = set(test[col].unique()) - set(train[col].unique())
+    non_overlapping = only_in_train.union(only_in_test)
+    return non_overlapping
+
+
+def pp_for_categorical_encoding(train: pd.DataFrame, test: pd.DataFrame, cols:List[str]):
+    """
+    encoding対象のcolumnに欠損がある場合は欠損を埋める
+    encoding対象のcolumnにtrain/testにしか出てこない値は全て同じものとして扱う
+    ex)trainにのみ'A', testにのみ'B'というカテゴリがある場合, 'A'と'B'は'other'という一つの値として扱う
+    """
+    for col in cols:
+        non_overlapping = get_non_overlapping(train, test, col)
+        try:
+            if train[col].dtype == np.dtype("O"):
+                # dtypeがobjectなら欠損は'missing' クラスにする
+                train[col] = train[col].fillna("missing")
+                test[col] = test[col].fillna("missing")
+                train[col] = train[col].map(lambda x: x if x not in non_overlapping else "other")
+                test[col] = test[col].map(lambda x: x if x not in non_overlapping else "other")
+
+            else:
+                # dtypeがint/floatなら欠損は-1とする
+                train[col] = train[col].fillna(-1)
+                test[col] = test[col].fillna(-1)
+                train[col] = train[col].map(lambda x: x if x not in non_overlapping else -2)
+                test[col] = test[col].map(lambda x: x if x not in non_overlapping else -2)
+        except:
+            print(f"Error at {col} columns")
+    return train, test
 
 
 def count_encoder(train: pd.DataFrame, test: pd.DataFrame, cols: list) -> pd.DataFrame:
