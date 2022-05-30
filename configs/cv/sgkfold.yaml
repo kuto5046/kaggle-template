@@ -1,0 +1,7 @@
+cv:
+  _target_: src.utils.ContinuousStratifiedFold
+  n_splits: 5
+  q: 10
+  target_col: ${common.target_col}
+  shuffle: True
+  random_state: ${common.seed}

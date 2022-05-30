@@ -1,0 +1,23 @@
+defaults:
+  - model: regression  # configs/model/から選択
+  - cv: kfold  # configs/cv/から選択
+
+common:
+  version: "001"
+  comment: "
+  debug
+  "
+  input_dir: /home/user/work/input/
+  seed: 42
+  debug: True
+  target_col: rating
+
+wandb:
+  init:  
+    project: debug
+    entity: kuto5046
+    group: ${common.version}
+    tags:
+      - baseline
+      - lightgbm
+
