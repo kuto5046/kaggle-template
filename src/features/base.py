@@ -1,10 +1,12 @@
 import pandas as pd
 
-def get_category_col(df:pd.DataFrame):
+def get_category_col(df:pd.DataFrame, skip_cols: list=[]):
     """カテゴリ型のカラム名を取得"""
     category_cols = []
     numerics = ['int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64', 'float16', 'float32', 'float64']
     for col in df.columns:
+        if col in skip_cols:
+            continue 
         col_type = df[col].dtypes
         if col_type not in numerics:
             category_cols.append(col)
