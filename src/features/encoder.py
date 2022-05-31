@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.preprocessing import OrdinalEncoder, LabelEncoder 
 import numpy as np 
 from typing import List
-
+from sklearn.model_selection import KFold
 
 def get_non_overlapping(train: pd.DataFrame, test: pd.DataFrame, col: str):
     """
@@ -81,4 +81,28 @@ def ordinal_encoder(train: pd.DataFrame, test: pd.DataFrame, cols: list) -> pd.D
     _test = pd.DataFrame(encoder.transform(test[cols]), columns=cols).add_suffix('_ordinal_enc')
     train = pd.concat([train, _train], axis=1)
     test = pd.concat([test, _test], axis=1)
+    return train, test
+
+
+
+def target_encoder(train: pd.DataFrame, test: pd.DataFrame, col: str, target_col: str):
+    """
+    usage:
+    
+    train_data = train.loc[idx_train].reset_index(drop=True)
+    valid_data = train.loc[idx_valid].reset_index(drop=True)
+    for col in cat_cols:
+        train_data, valid_data = target_encoder(train_data, valid_data, col, target_col)
+        _, test = target_encoder(train, test, col, target_col)
+    feature_cols = train_data.drop(drop_cols, axis=1).columns
+    """
+    # for test
+    group = train.groupby(col)[target_col].mean().to_dict()
+    test[f'{col}_te'] = test[col].map(group)
+
+    # for train
+    cv = list(KFold(n_splits=5, shuffle=True, random_state=42).split(train))
+    for (idx_train, idx_valid) in cv:
+        group = train.loc[idx_train, :].groupby(col)[target_col].mean().to_dict()
+        train.loc[idx_valid, f'{col}_te'] = train.loc[idx_valid, col].map(group)
     return train, test

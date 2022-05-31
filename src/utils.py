@@ -5,6 +5,8 @@ import os
 import subprocess
 import sys
 from datetime import datetime
+import builtins
+import types
 
 import hydra
 import numpy as np
@@ -15,6 +17,7 @@ import pickle
 from dotenv import load_dotenv
 
 load_dotenv()
+
 
 class Config():
     """
@@ -116,3 +119,28 @@ def pickle_save(object, path):
 
 def pickle_load(path):
     return pickle.load(open(path, 'rb'))
+
+
+
+
+def imports():
+    for name, val in globals().items():
+        # module imports
+        if isinstance(val, types.ModuleType):
+            yield name, val
+
+            # functions / callables
+        if hasattr(val, '__call__'):
+            yield name, val
+
+
+def noglobal(f):
+    '''
+    ref: https://gist.github.com/raven38/4e4c3c7a179283c441f575d6e375510c
+    '''
+    return types.FunctionType(f.__code__,
+                              dict(imports()),
+                              f.__name__,
+                              f.__defaults__,
+                              f.__closure__
+                              )
