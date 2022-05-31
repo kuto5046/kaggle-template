@@ -12,22 +12,37 @@ from catboost import CatBoostRegressor, CatBoostClassifier
 import os
 import pickle 
 import sys 
+import hydra 
+from omegaconf import DictConfig
+from logging import Logger
+
+def get_model(config: DictConfig, fold: int, logger: Logger, cat_cols: list, output_dir: str):
+    """
+    usage:
+    model = get_model(config, fold, logger, cat_cols)
+    """
+    if config.model.name == 'lightgbm':
+        model = LGBModel(fold, config.model.params, logger, cat_cols, output_dir)
+    elif config.model.name == 'xgboost':
+        model = XGBModel(fold, config.model.params, logger, cat_cols, output_dir)
+    elif config.model.name == 'catboost':
+        model = CBModel(fold, config.model.params, logger, cat_cols, output_dir)
+    else:
+        NotImplementedError
+    return model 
 
 
 class BaseModel(metaclass=ABCMeta):
 
-    def __init__(self, fold: int, params: dict, logger, categoricals=[]) -> None:
-        """コンストラクタ
-        :param run_fold_name: ランの名前とfoldの番号を組み合わせた名前
-        :param params: ハイパーパラメータ
-        """
+    def __init__(self, fold: int, params: dict, logger: Logger, cat_cols: list=[], output_dir:str='./') -> None:
+
         self.fold = fold
         self.params = params
         self.model = None
         self.models = []
-        self.categoricals = categoricals
-        self.pred_type = None  # catboostの回帰or分類タイプ
+        self.cat_cols = cat_cols
         self.logger = logger
+        self.output_dir = output_dir
 
     @abstractmethod
     def train(self, tr_x: pd.DataFrame, tr_y: pd.Series,
@@ -50,32 +65,30 @@ class BaseModel(metaclass=ABCMeta):
         pass
 
 
-    def save(self, path, fold) -> None:
+    def save(self) -> None:
         """モデルの保存を行う"""
-        pickle.dump(self.model, open(path + f"model_{fold}.pkl" , 'wb'))
+        pickle.dump(self.model, open(self.output_dir + f"model_{self.fold}.pkl" , 'wb'))
 
 
-    def load(self, path, fold) -> None:
+    def load(self, fold) -> None:
         """モデルの読み込みを行う"""
-        pickle.load(open(path + f"model_{fold}.pkl", 'rb'))
+        pickle.load(open(self.output_dir + f"model_{fold}.pkl", 'rb'))
 
 
 class LGBModel(BaseModel):
+    def __init__(self, fold: int, params: dict, logger: Logger, cat_cols: list=[], output_dir:str='./') -> None:
+        super().__init__(fold, params, logger, cat_cols, output_dir)
+
 
     def train(self, tr_x, tr_y, va_x, va_y):
-        register_logger(self.logger)  # custom loggerに学習のlogを流すようにする
-        callbacks = []
-        callbacks.append(early_stopping(100))
-        callbacks.append(log_evaluation(100))
-
         # データのセット
-        train_set = lgb.Dataset(tr_x, tr_y, categorical_feature=self.categoricals)
-        valid_set = lgb.Dataset(va_x, va_y, categorical_feature=self.categoricals)
+        train_set = lgb.Dataset(tr_x, tr_y, categorical_feature=self.cat_cols)
+        valid_set = lgb.Dataset(va_x, va_y, categorical_feature=self.cat_cols)
         register_logger(self.logger)  # custom loggerに学習のlogを流すようにする
         callbacks = []
         callbacks.append(early_stopping(100))
-        callbacks.append(log_evaluation(100))
-        callbacks.append(wandb_callback())
+        callbacks.append(log_evaluation(200))
+        # callbacks.append(wandb_callback())
         self.model = lgb.train(
             params=dict(self.params), 
             train_set=train_set, 
@@ -83,7 +96,7 @@ class LGBModel(BaseModel):
             num_boost_round=10000, 
             callbacks=callbacks,
             )
-        log_summary(self.model, feature_importance=True, save_model_checkpoint=True)
+        # log_summary(self.model, feature_importance=True, save_model_checkpoint=True)
         self.models.append(self.model)
 
     def predict(self, te_x):
@@ -91,6 +104,8 @@ class LGBModel(BaseModel):
 
 
 class XGBModel(BaseModel):
+    def __init__(self, fold: int, params: dict, logger: Logger, cat_cols: list=[], output_dir:str='./') -> None:
+        super().__init__(fold, params, logger, cat_cols, output_dir)
 
     def train(self, tr_x, tr_y, va_x, va_y):
 
@@ -117,6 +132,9 @@ class XGBModel(BaseModel):
 
 
 class CBModel(BaseModel):
+    def __init__(self, fold: int, params: dict, logger: Logger, cat_cols: list=[], output_dir:str='./') -> None:
+        super().__init__(fold, params, logger, cat_cols, output_dir)
+        self.pred_type = None  # catboostの回帰or分類タイプ
 
     def train(self, tr_x, tr_y, va_x=None, va_y=None):
 
@@ -139,7 +157,7 @@ class CBModel(BaseModel):
             eval_set=[(va_x, va_y)],
             verbose=100,
             use_best_model=True,
-            cat_features=self.categoricals
+            cat_features=self.cat_cols
         )
 
     def predict(self, te_x):

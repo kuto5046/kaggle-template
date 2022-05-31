@@ -1,13 +1,17 @@
+
 defaults:
-  - model: regression  # configs/model/から選択
-  - cv: kfold  # configs/cv/から選択
+  - _self_
+  - model: lgb_multiclass  # configs/model/から選択 
+  - cv: skfold  # configs/cv/から選択
 
 common:
-  version: "001"
+  version: "002"
   comment: "
   debug
   "
+  timestamp: None
   input_dir: /home/user/work/input/
+  output_dir: /home/user/work/output/${common.version}_${common.timestamp}/
   seed: 42
   debug: True
   target_col: rating
