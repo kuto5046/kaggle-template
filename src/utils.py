@@ -10,6 +10,7 @@ import hydra
 import numpy as np
 import pandas as pd
 import requests
+import pickle 
 # .env ファイルをロードして環境変数へ反映
 from dotenv import load_dotenv
 
@@ -108,3 +109,10 @@ def send_slack_error_notification(message):
     data = json.dumps({"text":":no_entry_sign:" + message})  
     headers = {'content-type': 'application/json'}
     requests.post(webhook_url, data=data, headers=headers)
+
+
+def pickle_save(object, path):
+    pickle.dump(object, open(path, 'wb'))
+
+def pickle_load(path):
+    return pickle.load(open(path, 'rb'))
