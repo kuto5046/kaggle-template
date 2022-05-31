@@ -74,7 +74,6 @@ def plot_venn(train:pd.DataFrame, test:pd.DataFrame, output_dir: str='./'):
 
 def plot_importance(
     models:List[lgb.Booster], 
-    feat_train_df:pd.DataFrame, 
     output_dir: str='./',
     top_n:int =50,
     ):
@@ -83,8 +82,8 @@ def plot_importance(
     args:
         models:
             List of lightGBM models
-        feat_train_df:
-            学習時に使った DataFrame
+        feature_cols:
+            学習時に使った特徴量リスト
     usage:
     ```
     fig, ax = visualize_importance(models, train_feat_df)
@@ -93,8 +92,8 @@ def plot_importance(
     feature_importance_df = pd.DataFrame()
     for i, model in enumerate(models):
         _df = pd.DataFrame()
-        _df['feature_importance'] = model.feature_importance()
-        _df['column'] = feat_train_df.columns
+        _df['feature_importance'] = model.feature_importance(importance_type='gain')
+        _df['column'] = model.feature_name()
         _df['fold'] = i + 1
         feature_importance_df = pd.concat([feature_importance_df, _df], 
                                           axis=0, ignore_index=True)
