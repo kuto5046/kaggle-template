@@ -1,0 +1,15 @@
+early_stopping:
+  _target_: lightgbm.early_stopping
+  stopping_rounds: 100
+  first_metric_only: False 
+  verbose: True
+
+training_log:
+  _target_: lightgbm.log_evaluation
+  period: 100
+  show_stdv: True
+
+wandb_log:
+  _target_: wandb.lightgbm.wandb_callback
+  log_params: True
+  define_metric: True

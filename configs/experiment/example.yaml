@@ -1,0 +1,28 @@
+# @package _global_
+
+# defaults:
+#  - override /
+
+defaults:
+  - override /cv: kfold.yaml
+  - override /model: lgb_multiclass.yaml
+  - override /callbacks: lightgbm.yaml
+  - override /logger: none.yaml
+
+exp:
+  version: "001"
+  comment: "
+  debug
+  "
+
+features:
+  - CountEncode
+  - OrdinalEncode
+  - Numerical
+
+
+init:
+  project: debug
+  entity: kuto5046
+  group: ${exp.version}
+  tags: ['example']

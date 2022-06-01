@@ -1,0 +1,7 @@
+name: wandb
+init:
+  project: debug
+  entity: kuto5046
+  group: exp${exp.version}
+  dir: ${common.output_dir}
+  tags: []
