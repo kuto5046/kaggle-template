@@ -5,7 +5,7 @@ from pathlib import Path
 from contextlib import contextmanager
 import inspect
 
-def get_category_col(df:pd.DataFrame, skip_cols: list=[]):
+def get_categorical_col(df:pd.DataFrame, skip_cols: list=[]):
     """カテゴリ型のカラム名を取得"""
     category_cols = []
     numerics = ['int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64', 'float16', 'float32', 'float64']
@@ -18,11 +18,15 @@ def get_category_col(df:pd.DataFrame, skip_cols: list=[]):
     return category_cols
 
 
-def get_num_col(df:pd.DataFrame):
-    """数値型のカラム名を取得"""
+def get_numerical_col(df:pd.DataFrame, skip_cols: list=[]):
+    """数値型のカラム名を取得
+    skip_colsにはtargetなど特徴量に追加しないものを選択
+    """
     num_cols = []
     numerics = ['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']
     for col in df.columns:
+        if col in skip_cols:
+            continue 
         col_type = df[col].dtypes
         if col_type in numerics:
             num_cols.append(col)
@@ -40,7 +44,7 @@ def timer(name):
 class Feature(metaclass=ABCMeta):
     prefix = ''
     suffix = ''
-    dir = '../../feature_store/'
+    dir = '/home/user/work/feature_store/'
     
     def __init__(self):
         self.name = self.__class__.__name__
@@ -80,7 +84,7 @@ def generate_features(namespace, overwrite=False):
         else:
             f.run().save()
 
-def load_datasets(feats, input_dir):
+def load_datasets(feats, input_dir = '/home/user/work/feature_store/'):
     dfs = [pd.read_pickle(input_dir + f'{f}_train.pkl') for f in feats]
     X_train = pd.concat(dfs, axis=1)
     dfs = [pd.read_pickle(input_dir + f'{f}_test.pkl') for f in feats]
