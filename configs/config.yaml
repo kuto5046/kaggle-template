@@ -13,7 +13,7 @@ exp:
   "
 
 common:
-  timestamp: ${now: %M%d-%H%M-%S}
+  timestamp: ${now:%M%d-%H%M-%S}
   input_dir: /home/user/work/input/
   output_dir: /home/user/work/output/${exp.version}_${common.timestamp}/
   seed: 42
