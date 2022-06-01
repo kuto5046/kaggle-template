@@ -15,34 +15,51 @@ import sys
 import hydra 
 from omegaconf import DictConfig
 from logging import Logger
+import wandb 
 
-def get_model(config: DictConfig, fold: int, logger: Logger, cat_cols: list, output_dir: str):
+
+def get_model(config: DictConfig, logger: Logger, cat_cols: list, output_dir: str, callbacks:list):
     """
     usage:
     model = get_model(config, fold, logger, cat_cols)
     """
+    
     if config.model.name == 'lightgbm':
-        model = LGBModel(fold, config.model.params, logger, cat_cols, output_dir)
+        model = LGBModel(config.model, logger, cat_cols, output_dir, callbacks)
     elif config.model.name == 'xgboost':
-        model = XGBModel(fold, config.model.params, logger, cat_cols, output_dir)
+        model = XGBModel(config.model, logger, cat_cols, output_dir)
     elif config.model.name == 'catboost':
-        model = CBModel(fold, config.model.params, logger, cat_cols, output_dir)
+        model = CBModel(config.model, logger, cat_cols, output_dir)
     else:
         NotImplementedError
+    
     return model 
+
+def get_callbacks(config):
+    callbacks = []
+    if "callbacks" in config:
+        for _, cb_conf in config.callbacks.items():
+            if "_target_" in cb_conf:
+                if ('wandb' in cb_conf._target_)&(wandb.run is not None):
+                    callbacks.append(hydra.utils.instantiate(cb_conf))
+                else:
+                    callbacks.append(hydra.utils.instantiate(cb_conf))
+    return callbacks 
 
 
 class BaseModel(metaclass=ABCMeta):
 
-    def __init__(self, fold: int, params: dict, logger: Logger, cat_cols: list=[], output_dir:str='./') -> None:
+    def __init__(self, model_config: dict, logger: Logger, cat_cols: list=[], output_dir:str='./', callbacks: list=[]) -> None:
 
-        self.fold = fold
-        self.params = params
+        self.fold = None 
+        self.num_round = model_config.num_boost_round
+        self.params = dict(model_config.params)
         self.model = None
         self.models = []
         self.cat_cols = cat_cols
         self.logger = logger
         self.output_dir = output_dir
+        self.callbacks = callbacks
 
     @abstractmethod
     def train(self, tr_x: pd.DataFrame, tr_y: pd.Series,
@@ -65,9 +82,9 @@ class BaseModel(metaclass=ABCMeta):
         pass
 
 
-    def save(self) -> None:
+    def save(self, fold) -> None:
         """モデルの保存を行う"""
-        pickle.dump(self.model, open(self.output_dir + f"model_{self.fold}.pkl" , 'wb'))
+        pickle.dump(self.model, open(self.output_dir + f"model_{fold}.pkl" , 'wb'))
 
 
     def load(self, fold) -> None:
@@ -76,27 +93,21 @@ class BaseModel(metaclass=ABCMeta):
 
 
 class LGBModel(BaseModel):
-    def __init__(self, fold: int, params: dict, logger: Logger, cat_cols: list=[], output_dir:str='./') -> None:
-        super().__init__(fold, params, logger, cat_cols, output_dir)
-
 
     def train(self, tr_x, tr_y, va_x, va_y):
         # データのセット
         train_set = lgb.Dataset(tr_x, tr_y, categorical_feature=self.cat_cols)
         valid_set = lgb.Dataset(va_x, va_y, categorical_feature=self.cat_cols)
         register_logger(self.logger)  # custom loggerに学習のlogを流すようにする
-        callbacks = []
-        callbacks.append(early_stopping(100))
-        callbacks.append(log_evaluation(200))
-        # callbacks.append(wandb_callback())
         self.model = lgb.train(
-            params=dict(self.params), 
+            params=self.params, 
             train_set=train_set, 
             valid_sets=[train_set, valid_set], 
-            num_boost_round=10000, 
-            callbacks=callbacks,
+            num_boost_round=self.num_round, 
+            callbacks=self.callbacks,
             )
-        # log_summary(self.model, feature_importance=True, save_model_checkpoint=True)
+        if wandb.run is not None:
+            log_summary(self.model, feature_importance=False, save_model_checkpoint=False)
         self.models.append(self.model)
 
     def predict(self, te_x):
@@ -123,7 +134,8 @@ class XGBModel(BaseModel):
             early_stopping_rounds=100,
             verbose_eval=100,
             )
-        log_summary(self.model, feature_importance=True, save_model_checkpoint=True)
+        if wandb.run is not None:
+            log_summary(self.model, feature_importance=True, save_model_checkpoint=True)
         self.models.append(self.model)
 
     def predict(self, te_x):
