@@ -17,7 +17,7 @@ import tensorflow_hub as hub
 from tqdm import tqdm
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.mixture import GaussianMixture
-
+from typing import Union 
 
 tqdm.pandas()
 
@@ -39,13 +39,13 @@ def count_vectorize(input_df:pd.DataFrame, cols:List[str]):
 
 
 def tfidf_svd_vectorize(input_df:pd.DataFrame, cols:List[str], n_components:int =50):
-    output_df = input_df.copy()
     for col in cols:
         tfidf_svd = Pipeline(steps=[
             ("TfidfVectorizer", TfidfVectorizer()),
             ("TruncatedSVD", TruncatedSVD(n_components=n_components, random_state=42))
         ])
-        features_svd = tfidf_svd.fit_transform(input_df["title"].fillna(""))
+        features_svd = tfidf_svd.fit_transform(input_df[col].fillna(""))
+    return features_svd
 
 
 def get_sentence_vector(x: str, ndim=320):
