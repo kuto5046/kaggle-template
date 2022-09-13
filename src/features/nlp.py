@@ -22,30 +22,32 @@ from sklearn.mixture import GaussianMixture
 tqdm.pandas()
 
 
-def count_vectorize(input_df:pd.DataFrame, cols:List[str]):
+def count_lda_vectorize(input_df:pd.DataFrame, col:str, n_components:int = 50):
     """
-    文章中のtokenの頻度を数えたスパースマトリクスを作成。
-    行列の各行が各文章に該当し、各列がtokenに対応。
-    つまり文章をあるtokenがあるかないかで特徴づけ、ベクトルを得る手法
+    usage:
+    df2 = count_lda_vectorize(df, col='abc', n_components=5)
     """
-    output_list = []
-    for col in cols:
-        cv = CountVectorizer()
-        features = cv.fit_transform(input_df[col].fillna(""))
-        out_df = pd.DataFrame(features).add_prefix(f"{col}_tfidf_")
-        output_list.append(out_df)
-    output_df = pd.concat(output_list)
+    pipeline = Pipeline(steps=[
+        ("TfidfVectorizer", CountVectorizer()),
+        ("TruncatedSVD", LatentDirichletAllocation(n_components=n_components, random_state=42))
+    ])
+    features = pipeline.fit_transform(input_df[col].fillna(""))
+    output_df = pd.DataFrame(features).add_prefix(f'count_lda_{col}_')
     return output_df
 
 
-def tfidf_svd_vectorize(input_df:pd.DataFrame, cols:List[str], n_components:int =50):
-    output_df = input_df.copy()
-    for col in cols:
-        tfidf_svd = Pipeline(steps=[
-            ("TfidfVectorizer", TfidfVectorizer()),
-            ("TruncatedSVD", TruncatedSVD(n_components=n_components, random_state=42))
-        ])
-        features_svd = tfidf_svd.fit_transform(input_df["title"].fillna(""))
+def tfidf_svd_vectorize(input_df:pd.DataFrame, col:str, n_components:int = 50):
+    """
+    usage:
+    tfidf_df = tfidf_svd_vectorize(df, col='abc', n_components=5)
+    """
+    pipeline = Pipeline(steps=[
+        ("TfidfVectorizer", TfidfVectorizer()),
+        ("TruncatedSVD", TruncatedSVD(n_components=n_components, random_state=42))
+    ])
+    features = pipeline.fit_transform(input_df[col].fillna(""))
+    output_df = pd.DataFrame(features).add_prefix(f'tfidf_svd_{col}_')
+    return output_df
 
 
 def get_sentence_vector(x: str, ndim=320):
@@ -53,7 +55,7 @@ def get_sentence_vector(x: str, ndim=320):
     usage:
     features = np.stack(
         df["title"].fillna("").str.replace("\n", "").map(lambda x: get_sentence_vector(x)
-        ).values
+        ).to_numpy()
     """
     embeddings = [
         w2v_model.get_vector(word)
@@ -65,8 +67,6 @@ def get_sentence_vector(x: str, ndim=320):
         return np.zeros(ndim, dtype=np.float32)
     else:
         return np.mean(embeddings, axis=0)
-
-
 
 
 class SCDVEmbedder(TransformerMixin, BaseEstimator):
@@ -143,36 +143,49 @@ def tokenizer(x: str):
 
 
 class UniversalSentenceEncoder():
+    """
+    usage:
+    usencoder = UniversalSentenceEncoder()  # 必要に応じてloadするモデルを変更
+    s1_vec = usencoder.vectorize(whole, col='s1')
+    s2_vec = usencoder.vectorize(whole, col='s2')
+    s1_s2_sim = usencoder.similarity_vectorize(s1_vec, s2_vec)
+    """
     def __init__(self):
         self.embedder = hub.load(
             "https://tfhub.dev/google/universal-sentence-encoder-multilingual/3"
             )
 
-    def vectorize(self, input_df, col):
-        features = np.stack(
+    def vectorize(self, input_df: pd.DataFrame, col: str, save: bool=True) -> pd.DataFrame:
+        vector = np.stack(
             input_df[col].fillna("").progress_apply(
                 lambda x: self.embedder(x).numpy().reshape(-1)
                 ).values
         )
-        tmp_df = pd.DataFrame(features).add_suffix(f'_{col}_sentence_vec')
-        output_df = pd.concat([input_df, tmp_df], axis=1)
+        output_df = pd.DataFrame(vector).add_suffix(f'_{col}_sentence_vec')
+        if save:
+            output_df.to_pickle(f'{col}_sentence_vec.pkl')
         return output_df
 
-    def similarity_vectorize(self, input_df, col1, col2):
-        features1 = np.stack(
-            input_df[col1].fillna("").progress_apply(
-                lambda x: self.embedder(x).numpy().reshape(-1)
-                ).values
-        ) 
-        features2 = np.stack(
-            input_df[col2].fillna("").progress_apply(
-                lambda x: self.embedder(x).numpy().reshape(-1)
-                ).values
-        )
-        value = (features1 * features2).sum(axis=1) / (
-            np.linalg.norm(features1, axis=1) * np.linalg.norm(features2, axis=1))
-        input_df[f'{col1}_{col2}_sentence_sim_vec'] = value
-        return input_df
+    def similarity_vectorize(
+        self, 
+        vec1: Union[pd.DataFrame, np.ndarray], 
+        vec2: Union[pd.DataFrame, np.ndarray],
+        save: bool=True) -> pd.DataFrame:
+
+        if isinstance(vec1, np.ndarray) & isinstance(vec1, np.ndarray):
+            pass
+        elif isinstance(vec1, pd.DataFrame) & isinstance(vec1, pd.DataFrame):
+            vec1 = vec1.to_numpy()
+            vec2 = vec2.to_numpy()
+        else:
+            TypeError
+        similarity = (vec1 * vec2).sum(axis=1) / (
+            np.linalg.norm(vec1, axis=1) * np.linalg.norm(vec2, axis=1))
+        output_df = pd.DataFrame()
+        output_df['universal_sentence_similarity'] = similarity
+        if save:
+            output_df.to_pickle(f'sentence_vec_similarity.pkl')
+        return output_df
 
 
 class BertSequenceVectorizer:
