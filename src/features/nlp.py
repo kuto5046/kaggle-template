@@ -22,30 +22,32 @@ from typing import Union
 tqdm.pandas()
 
 
-def count_vectorize(input_df:pd.DataFrame, cols:List[str]):
+def count_lda_vectorize(input_df:pd.DataFrame, col:str, n_components:int = 50):
     """
-    文章中のtokenの頻度を数えたスパースマトリクスを作成。
-    行列の各行が各文章に該当し、各列がtokenに対応。
-    つまり文章をあるtokenがあるかないかで特徴づけ、ベクトルを得る手法
+    usage:
+    df2 = count_lda_vectorize(df, col='abc', n_components=5)
     """
-    output_list = []
-    for col in cols:
-        cv = CountVectorizer()
-        features = cv.fit_transform(input_df[col].fillna(""))
-        out_df = pd.DataFrame(features).add_prefix(f"{col}_tfidf_")
-        output_list.append(out_df)
-    output_df = pd.concat(output_list)
+    pipeline = Pipeline(steps=[
+        ("TfidfVectorizer", CountVectorizer()),
+        ("TruncatedSVD", LatentDirichletAllocation(n_components=n_components, random_state=42))
+    ])
+    features = pipeline.fit_transform(input_df[col].fillna(""))
+    output_df = pd.DataFrame(features).add_prefix(f'count_lda_{col}_')
     return output_df
 
 
-def tfidf_svd_vectorize(input_df:pd.DataFrame, cols:List[str], n_components:int =50):
-    for col in cols:
-        tfidf_svd = Pipeline(steps=[
-            ("TfidfVectorizer", TfidfVectorizer()),
-            ("TruncatedSVD", TruncatedSVD(n_components=n_components, random_state=42))
-        ])
-        features_svd = tfidf_svd.fit_transform(input_df[col].fillna(""))
-    return features_svd
+def tfidf_svd_vectorize(input_df:pd.DataFrame, col:str, n_components:int = 50):
+    """
+    usage:
+    tfidf_df = tfidf_svd_vectorize(df, col='abc', n_components=5)
+    """
+    pipeline = Pipeline(steps=[
+        ("TfidfVectorizer", TfidfVectorizer()),
+        ("TruncatedSVD", TruncatedSVD(n_components=n_components, random_state=42))
+    ])
+    features = pipeline.fit_transform(input_df[col].fillna(""))
+    output_df = pd.DataFrame(features).add_prefix(f'tfidf_svd_{col}_')
+    return output_df
 
 
 def get_sentence_vector(x: str, ndim=320):
@@ -53,7 +55,7 @@ def get_sentence_vector(x: str, ndim=320):
     usage:
     features = np.stack(
         df["title"].fillna("").str.replace("\n", "").map(lambda x: get_sentence_vector(x)
-        ).values
+        ).to_numpy()
     """
     embeddings = [
         w2v_model.get_vector(word)
@@ -65,8 +67,6 @@ def get_sentence_vector(x: str, ndim=320):
         return np.zeros(ndim, dtype=np.float32)
     else:
         return np.mean(embeddings, axis=0)
-
-
 
 
 class SCDVEmbedder(TransformerMixin, BaseEstimator):
@@ -145,7 +145,7 @@ def tokenizer(x: str):
 class UniversalSentenceEncoder():
     """
     usage:
-    usencoder = UniversalSentenceEncoder()
+    usencoder = UniversalSentenceEncoder()  # 必要に応じてloadするモデルを変更
     s1_vec = usencoder.vectorize(whole, col='s1')
     s2_vec = usencoder.vectorize(whole, col='s2')
     s1_s2_sim = usencoder.similarity_vectorize(s1_vec, s2_vec)
