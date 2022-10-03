@@ -3,6 +3,28 @@ import hydra
 from sklearn.model_selection import StratifiedKFold, KFold, GroupKFold
 from sklearn.utils import _deprecate_positional_args  
 
+
+def get_kfold(train, n_splits, seed=0):
+    fold = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
+    return list(fold.split(X=train))
+
+
+def get_stratifiedkfold(train, target_col, n_splits, seed=0):
+    fold = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
+    return list(fold.split(X=train, y=train[target_col]))
+
+
+def get_groupkfold(train, target_col, group_col, n_splits):
+    fold = GroupKFold(n_splits=n_splits)
+    return list(fold.split(X=train, y=train[target_col], groups=train[group_col]))
+
+
+def get_cont_stratifiedkfold(train, target_col, n_splits, q=10, seed=0):
+    fold = ContinuousStratifiedFold(n_splits=n_splits, q=q, shuffle=True, random_state=seed)
+    return list(fold.split(X=train, y=train[target_col]))
+
+
+# hydraを想定
 def get_fold(X, config, y=None, groups=None):
     """
     usage:

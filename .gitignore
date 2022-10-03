@@ -4,6 +4,8 @@
 *.csv
 output
 *.pkl
+*.pickle
+*.parquet
 wandb
 
 # Byte-compiled / optimized / DLL files

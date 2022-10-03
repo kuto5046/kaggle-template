@@ -8,7 +8,8 @@ from matplotlib_venn import venn2
 import sweetviz as sv
 import pandas_profiling as pdp
 from IPython.display import display_html
-
+import xgboost
+import lightgbm
 
 # 欠損値の確認
 def missing_values(data):
@@ -143,9 +144,10 @@ def plot_venn(train:pd.DataFrame, test:pd.DataFrame, output_dir: str='./'):
 def plot_importance(
     models:List[lgb.Booster], 
     output_dir: str='./',
+    importance_type='gain',
     top_n:int =50,
     ):
-    """lightGBM の model 配列の feature importance を plot する
+    """model 配列の feature importance を plot する
     CVごとのブレを boxen plot として表現します.
     args:
         models:
@@ -160,8 +162,14 @@ def plot_importance(
     feature_importance_df = pd.DataFrame()
     for i, model in enumerate(models):
         _df = pd.DataFrame()
-        _df['feature_importance'] = model.feature_importance(importance_type='gain')
-        _df['column'] = model.feature_name()
+
+        if isinstance(model, lightgbm.Booster):
+            _df['feature_importance'] = model.feature_importance(importance_type=importance_type)
+            _df['column'] = model.feature_name()
+        elif isinstance(model, xgboost.core.Booster):
+            feature_importance = model.get_score(importance_type=importance_type)
+            _df['feature_importance'] = feature_importance.values()
+            _df['column'] = feature_importance.keys()
         _df['fold'] = i + 1
         feature_importance_df = pd.concat([feature_importance_df, _df], 
                                           axis=0, ignore_index=True)

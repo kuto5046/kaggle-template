@@ -1,7 +1,6 @@
 defaults:
   - lgb_base
 
-num_boost_round: 10000
 params:
   objective : binary
   metric: binary_logloss

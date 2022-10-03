@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-class Config():
+class HydraConfig():
     """
     hydraによる設定値の取得
     scriptの時はデコレータの方が簡単なのでこちらは使わずnotebookの時に使用することを想定

@@ -1,0 +1,12 @@
+name: None  # 上書きする
+num_boost_round: None
+
+params:
+  loss_function : None 
+  eval_metric: None 
+  num_boost_round: 3000
+  colsample_bylevel: 0.8
+  max_depth: 5
+  subsample: 0.8
+  random_seed: 42
+  learning_rate: 0.05

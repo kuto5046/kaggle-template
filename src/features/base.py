@@ -50,8 +50,8 @@ class Feature(metaclass=ABCMeta):
         self.name = self.__class__.__name__
         self.train = pd.DataFrame()
         self.test = pd.DataFrame()
-        self.train_path = Path(self.dir) / f'{self.name}_train.pkl'
-        self.test_path = Path(self.dir) / f'{self.name}_test.pkl'
+        self.train_path = Path(self.dir) / f'{self.name}_train'
+        self.test_path = Path(self.dir) / f'{self.name}_test'
     
     def run(self):
         with timer(self.name):
@@ -66,9 +66,18 @@ class Feature(metaclass=ABCMeta):
     def create_features(self):
         raise NotImplementedError
     
-    def save(self):
-        self.train.to_pickle(str(self.train_path))
-        self.test.to_pickle(str(self.test_path))
+    def save(self, ext):
+        if ext == 'csv':
+            self.train.to_csv(f"{str(self.train_path)}.csv", index=False)
+            self.test.to_csv(f"{str(self.test_path)}.csv", index=False)
+        elif ext == 'parquet':
+            self.train.to_parquet(f"{str(self.train_path)}.parquet")
+            self.test.to_parquet(f"{str(self.test_path)}.parquet")
+        elif ext == 'pickle':
+            self.train.to_pickle(f"{str(self.train_path)}.pickle")
+            self.test.to_pickle(f"{str(self.test_path)}.pickle")
+        else:
+            ValueError
 
 
 def get_features(namespace):
@@ -77,16 +86,29 @@ def get_features(namespace):
             yield v()
 
 
-def generate_features(namespace, overwrite=False):
+def generate_features(namespace, ext: str = 'pickle', overwrite: bool =False):
+    """parquetだとcategoryがfloatになってしまう"""
     for f in get_features(namespace):
-        if f.train_path.exists() and f.test_path.exists() and not overwrite:
+        if f.train_path.with_suffix(f".{ext}").exists() and f.test_path.with_suffix(f".{ext}").exists() and not overwrite:
             print(f.name, 'was skipped')
         else:
-            f.run().save()
+            f.run().save(ext)
 
-def load_datasets(feats, input_dir = '/home/user/work/feature_store/'):
-    dfs = [pd.read_pickle(input_dir + f'{f}_train.pkl') for f in feats]
-    X_train = pd.concat(dfs, axis=1)
-    dfs = [pd.read_pickle(input_dir + f'{f}_test.pkl') for f in feats]
-    X_test = pd.concat(dfs, axis=1)
+
+def load_datasets(feats, input_dir = '/home/user/work/feature_store/', ext='pickle'):
+    if ext == 'csv':
+        train_dfs = [pd.read_csv(f'{input_dir}/{f}_train.csv') for f in feats]
+        test_dfs = [pd.read_csv(f'{input_dir}/{f}_test.csv') for f in feats]
+    elif ext == 'parquet':
+        train_dfs = [pd.read_parquet(f'{input_dir}/{f}_train.parquet') for f in feats]
+        test_dfs = [pd.read_parquet(f'{input_dir}/{f}_test.parquet') for f in feats]
+    elif ext == 'pickle':
+        train_dfs = [pd.read_pickle(f'{input_dir}/{f}_train.pickle') for f in feats]
+        test_dfs = [pd.read_pickle(f'{input_dir}/{f}_test.pickle') for f in feats]
+    else:
+        ValueError
+
+    X_train = pd.concat(train_dfs, axis=1)
+    X_test = pd.concat(test_dfs, axis=1)
+    assert X_train.shape[1]==X_test.shape[1]
     return X_train, X_test

@@ -1,0 +1,6 @@
+defaults:
+  - xgb_base
+
+params:
+  objective : binary:logistic
+  eval_metric: logloss
