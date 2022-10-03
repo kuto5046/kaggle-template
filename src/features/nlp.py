@@ -28,8 +28,8 @@ def count_lda_vectorize(input_df:pd.DataFrame, col:str, n_components:int = 50):
     df2 = count_lda_vectorize(df, col='abc', n_components=5)
     """
     pipeline = Pipeline(steps=[
-        ("TfidfVectorizer", CountVectorizer()),
-        ("TruncatedSVD", LatentDirichletAllocation(n_components=n_components, random_state=42))
+        ("CountVectorizer", CountVectorizer()),
+        ("LDA", LatentDirichletAllocation(n_components=n_components, random_state=42))
     ])
     features = pipeline.fit_transform(input_df[col].fillna(""))
     output_df = pd.DataFrame(features).add_prefix(f'count_lda_{col}_')
@@ -40,6 +40,7 @@ def tfidf_svd_vectorize(input_df:pd.DataFrame, col:str, n_components:int = 50):
     """
     usage:
     tfidf_df = tfidf_svd_vectorize(df, col='abc', n_components=5)
+    次元圧縮したくない場合はpipelineのTruncatedSVDをコメントアウト
     """
     pipeline = Pipeline(steps=[
         ("TfidfVectorizer", TfidfVectorizer()),
@@ -49,40 +50,57 @@ def tfidf_svd_vectorize(input_df:pd.DataFrame, col:str, n_components:int = 50):
     output_df = pd.DataFrame(features).add_prefix(f'tfidf_svd_{col}_')
     return output_df
 
+class Sentence2Vec():
+    """ word2vecで単語をベクトル化し文章全体で平均を取る
+    https://github.com/clips/dutchembeddings
+    からモデルを取ってくる
 
-def get_sentence_vector(x: str, ndim=320):
-    """
     usage:
-    features = np.stack(
-        df["title"].fillna("").str.replace("\n", "").map(lambda x: get_sentence_vector(x)
-        ).to_numpy()
+    encoder = Sentence2Vec()
+    df2 = encoder.vectorize_to_df(df, col)
     """
-    embeddings = [
-        w2v_model.get_vector(word)
-        if w2v_model.vocab.get(word) is not None
-        else np.zeros(ndim, dtype=np.float32)
-        for word in x.split()
-    ]
-    if len(embeddings) == 0:
-        return np.zeros(ndim, dtype=np.float32)
-    else:
-        return np.mean(embeddings, axis=0)
+    def __init__(self, model_file="./320/wikipedia-320.txt"):
+        self.w2v_model = KeyedVectors.load_word2vec_format(model_file, binary=False)
+
+    def vectorize(self, x: str, ndim=320):
+        embeddings = [
+            self.w2v_model.get_vector(word)
+            if self.w2v_model.vocab.get(word) is not None
+            else np.zeros(ndim, dtype=np.float32)
+            for word in x.split()
+        ]
+        if len(embeddings) == 0:
+            return np.zeros(ndim, dtype=np.float32)
+        else:
+            return np.mean(embeddings, axis=0)
+
+    def vectorize_to_df(self,input_df, col):
+        vector = np.stack(
+            input_df[col].fillna("").str.replace("\n", "").progress_apply(lambda x: self.vectorize(x))
+            ).to_numpy()
+        output_df = pd.DataFrame(vector).add_prefix('senentce2vec_')
+        return output_df 
 
 
 class SCDVEmbedder(TransformerMixin, BaseEstimator):
     """
     usage:
-    scdv = SCDVEmbedder(w2v_model, tokenizer=tokenizer, k=5)
-    scdv.fit(df["title"])
-    features = scdv.transform(df["title"])
+    model_file="./320/wikipedia-320.txt"
+    w2v_model = KeyedVectors.load_word2vec_format(model_file, binary=False)
+    model = SCDVEmbedder(w2v_model, k=5)
+    model.fit(df["title"])
+    features = model.transform(df["title"])
     """
-    def __init__(self, w2v, tokenizer, k=5):
+    def __init__(self, w2v, k=5):
         self.w2v = w2v
         self.vocab = set(self.w2v.vocab.keys())
-        self.tokenizer = tokenizer
+        self.tokenizer = self.tokenizer
         self.k = k
         self.topic_vector = None
         self.tv = TfidfVectorizer(tokenizer=self.tokenizer)
+
+    def tokenizer(x: str):
+        return x.split()
 
     def __assert_if_not_fitted(self):
         assert self.topic_vector is not None, \
@@ -138,10 +156,6 @@ class SCDVEmbedder(TransformerMixin, BaseEstimator):
         )
 
 
-def tokenizer(x: str):
-    return x.split()
-
-
 class UniversalSentenceEncoder():
     """
     usage:
@@ -161,9 +175,9 @@ class UniversalSentenceEncoder():
                 lambda x: self.embedder(x).numpy().reshape(-1)
                 ).values
         )
-        output_df = pd.DataFrame(vector).add_suffix(f'_{col}_sentence_vec')
+        output_df = pd.DataFrame(vector).add_prefix(f'universal_sentence_{col}')
         if save:
-            output_df.to_pickle(f'{col}_sentence_vec.pkl')
+            output_df.to_pickle(f'universal_sentence_{col}.pkl')
         return output_df
 
     def similarity_vectorize(
@@ -192,13 +206,11 @@ class BertSequenceVectorizer:
     def __init__(self, model_name="bert-base-uncased", max_len=128):
         """
         usage:
-        BSV = BertSequenceVectorizer(
+        bert = BertSequenceVectorizer(
             model_name="bert-base-multilingual-uncased",
             max_len=128
             )
-        features = np.stack(
-            df["title"].fillna("").map(lambda x: BSV.vectorize(x).reshape(-1)).values
-            )
+        df = bert.vectorize_to_df(df, col)
         """
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model_name = model_name
@@ -223,8 +235,15 @@ class BertSequenceVectorizer:
 
         bert_out = self.bert_model(inputs_tensor, masks_tensor)
         seq_out, pooled_out = bert_out['last_hidden_state'], bert_out['pooler_output']
-
         if torch.cuda.is_available():    
             return seq_out[0][0].cpu().detach().numpy() # 0番目は [CLS] token, 768 dim の文章特徴量
         else:
             return seq_out[0][0].detach().numpy()
+
+    def vectorize_to_df(self, input_df: pd.DataFrame, col:str):
+        vector = np.stack(
+            input_df[col].fillna("").progress_apply(
+                lambda x: self.vectorize(x).reshape(-1)).to_numpy()
+            )
+        output_df = pd.DataFrame(vector).add_prefix(f'bert_{col}_')
+        return output_df 
