@@ -51,8 +51,8 @@ def count_encoder(train: pd.DataFrame, test: pd.DataFrame, cols: list) -> pd.Dat
         encoder = train[col].value_counts()
         train[f'{prefix}_{col}'] = train[col].map(encoder)
         test[f'{prefix}_{col}'] = test[col].map(encoder)
-    _train = train.filter(like=prefix).astype('category')
-    _test = test.filter(like=prefix).astype('category')
+    _train = train.filter(like=prefix)
+    _test = test.filter(like=prefix)
     return _train, _test
 
 

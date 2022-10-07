@@ -124,7 +124,11 @@ class LGBModel(BaseModel):
         self.models.append(self.model)
 
     def predict(self, X_test):
-        return self.model.predict(X_test, num_iteration=self.model.best_iteration)
+        """
+        予測クラスをそのまま出力する 
+        """
+        pred = self.model.predict(X_test, num_iteration=self.model.best_iteration)
+        return np.argmax(pred, axis=1)
 
 
 class XGBModel(BaseModel):
@@ -148,6 +152,9 @@ class XGBModel(BaseModel):
         self.models.append(self.model)
 
     def predict(self, X_test):
+        """ 
+        予測クラスをそのまま出力する
+        """
         test_data = xgb.DMatrix(X_test, enable_categorical=True)
         return self.model.predict(test_data, iteration_range=(0, self.model.best_iteration + 1))
 
@@ -157,9 +164,9 @@ class CBRegressorModel(BaseModel):
     def train(self, X_train, y_train, X_valid, y_valid):
 
         self.model = CatBoostRegressor(**self.model_params)
-        # category typeをintに変換
-        X_train[self.cat_cols] = X_train[self.cat_cols].astype(int)
-        X_valid[self.cat_cols] = X_valid[self.cat_cols].astype(int)
+        # category typeをstrに変換
+        X_train[self.cat_cols] = X_train[self.cat_cols].astype(str)
+        X_valid[self.cat_cols] = X_valid[self.cat_cols].astype(str)
         cat_idx_cols = [X_train.columns.get_loc(col) for col in self.cat_cols]
 
         # 学習
@@ -175,8 +182,8 @@ class CBRegressorModel(BaseModel):
         self.models.append(self.model)
 
     def predict(self, X_test):
-        # category typeをintに変換
-        X_test[self.cat_cols] = X_test[self.cat_cols].astype(int)
+        # category typeをstrに変換
+        X_test[self.cat_cols] = X_test[self.cat_cols].astype(str)
         return self.model.predict(X_test)
 
 
@@ -186,9 +193,9 @@ class CBClassifierModel(BaseModel):
 
         self.model = CatBoostClassifier(**self.model_params)
         
-        # category typeをintに変換
-        X_train[self.cat_cols] = X_train[self.cat_cols].astype(int)
-        X_valid[self.cat_cols] = X_valid[self.cat_cols].astype(int)
+        # category typeをstrに変換
+        X_train[self.cat_cols] = X_train[self.cat_cols].astype(str)
+        X_valid[self.cat_cols] = X_valid[self.cat_cols].astype(str)
         cat_idx_cols = [X_train.columns.get_loc(col) for col in self.cat_cols]
 
         # 学習
@@ -204,6 +211,9 @@ class CBClassifierModel(BaseModel):
         self.models.append(self.model)
 
     def predict(self, X_test):
-        # category typeをintに変換
-        X_test[self.cat_cols] = X_test[self.cat_cols].astype(int)
-        return self.model.predict(X_test)
+        # category typeをstrに変換
+        X_test[self.cat_cols] = X_test[self.cat_cols].astype(str)
+
+        # 出力が(n,1)になるのでreshape
+        pred = self.model.predict(X_test)
+        return pred.reshape(-1)
