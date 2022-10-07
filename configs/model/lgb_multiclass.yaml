@@ -1,8 +1,7 @@
 defaults:
   - lgb_base
 
-num_boost_round: 10000
 params:
   objective : multiclass
-  num_class: 10
   metric: multi_logloss
+  num_class: 10

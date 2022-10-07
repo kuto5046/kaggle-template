@@ -5,3 +5,4 @@ init:
   group: exp${exp.version}
   dir: ${common.output_dir}
   tags: []
+  mode: disabled  # defaultではログを取らない使用

@@ -1,0 +1,9 @@
+name: catboost-classifier
+defaults:
+  - cb_base
+
+params:
+  loss_function : MultiClass
+  eval_metric: MultiClass
+  classes_count: 10
+  subsample: 

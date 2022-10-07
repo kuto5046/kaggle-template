@@ -1,8 +1,6 @@
 defaults:
   - lgb_base
 
-num_boost_round: 10000
-name: lightgbm
 params:
   objective : regression
   metric: rmse

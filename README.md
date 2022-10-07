@@ -20,9 +20,9 @@ datasetをdownload
 cd input
 kaggle datasets download <DATASET_NAME>
 ```
-解凍
+解凍(同じ名前のディレクトリを作成してその中に解凍)
 ```
-unzip <DATASET_NAME>.zip
+unzip <DATASET_NAME>.zip -d <DATASET_NAME>
 ```
 
 ## 初めにすること

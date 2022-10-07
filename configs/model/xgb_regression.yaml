@@ -1,0 +1,6 @@
+defaults:
+  - xgb_base
+
+params:
+  objective : reg:squarederror
+  eval_metric: rmse

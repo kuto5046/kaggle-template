@@ -7,7 +7,7 @@ defaults:
   - override /cv: kfold.yaml
   - override /model: lgb_multiclass.yaml
   - override /callbacks: lightgbm.yaml
-  - override /logger: none.yaml
+  - override /logger: wandb.yaml
 
 exp:
   version: "001"
