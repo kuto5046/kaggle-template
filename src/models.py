@@ -124,11 +124,13 @@ class LGBModel(BaseModel):
         self.models.append(self.model)
 
     def predict(self, X_test):
-        """
-        予測クラスをそのまま出力する 
-        """
         pred = self.model.predict(X_test, num_iteration=self.model.best_iteration)
-        return np.argmax(pred, axis=1)
+
+        # multi classの場合予測クラスをそのまま出力する 
+        if pred.ndim > 1:
+            return np.argmax(pred, axis=1)
+
+        return pred 
 
 
 class XGBModel(BaseModel):
