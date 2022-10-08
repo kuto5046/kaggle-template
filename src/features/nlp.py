@@ -1,3 +1,4 @@
+import os 
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline
@@ -50,22 +51,46 @@ def tfidf_svd_vectorize(input_df:pd.DataFrame, col:str, n_components:int = 50):
     output_df = pd.DataFrame(features).add_prefix(f'tfidf_svd_{col}_')
     return output_df
 
+
+def get_embedding_model(embedding_source='wikipedia-160', output_dir="/home/user/work/input/resource"):
+    """ 
+    以下のリンク先にあるembedding fileを取得し保存
+    https://github.com/clips/dutchembeddings 
+    """
+    import urllib
+    import tarfile
+    os.makedirs(output_dir, exist_ok=True)
+    save_path = f'{output_dir}/{embedding_source}.tar.gz'
+
+    if not os.path.exists(save_path):
+        url = f'https://www.clips.uantwerpen.be/dutchembeddings/{embedding_source}.tar.gz'
+        urllib.request.urlretrieve(url, save_path)
+    
+        with tarfile.open(save_path, 'r:gz') as tar:
+            tar.extractall(path=output_dir)
+    else:
+        print(f'skipped because {save_path} is already exist')
+
+
+
 class Sentence2Vec():
     """ word2vecで単語をベクトル化し文章全体で平均を取る
     https://github.com/clips/dutchembeddings
     からモデルを取ってくる
 
     usage:
-    encoder = Sentence2Vec()
-    df2 = encoder.vectorize_to_df(df, col)
+    model_file = 'wikipedia-160.txt'
+    ndim = 160
+    encoder = Sentence2Vec(model_file)
+    df2 = encoder.vectorize_to_df(df, col, ndim=160)
     """
-    def __init__(self, model_file="./320/wikipedia-320.txt"):
+    def __init__(self, model_file="./160/wikipedia-160.txt"):
         self.w2v_model = KeyedVectors.load_word2vec_format(model_file, binary=False)
 
-    def vectorize(self, x: str, ndim=320):
+    def vectorize(self, x: str, ndim=160):
         embeddings = [
             self.w2v_model.get_vector(word)
-            if self.w2v_model.vocab.get(word) is not None
+            if self.w2v_model.key_to_index.get(word, None) is not None
             else np.zeros(ndim, dtype=np.float32)
             for word in x.split()
         ]
@@ -74,10 +99,10 @@ class Sentence2Vec():
         else:
             return np.mean(embeddings, axis=0)
 
-    def vectorize_to_df(self,input_df, col):
+    def vectorize_to_df(self,input_df, col, ndim=160):
         vector = np.stack(
-            input_df[col].fillna("").str.replace("\n", "").progress_apply(lambda x: self.vectorize(x))
-            ).to_numpy()
+            input_df[col].fillna("").str.replace("\n", "").progress_apply(lambda x: self.vectorize(x, ndim)).to_numpy()
+            )
         output_df = pd.DataFrame(vector).add_prefix('senentce2vec_')
         return output_df 
 
