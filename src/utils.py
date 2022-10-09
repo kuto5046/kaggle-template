@@ -7,7 +7,8 @@ import sys
 from datetime import datetime
 import builtins
 import types
-
+import random 
+import torch
 import hydra
 import numpy as np
 import pandas as pd
@@ -120,6 +121,15 @@ def pickle_save(object, path):
 def pickle_load(path):
     return pickle.load(open(path, 'rb'))
 
+
+def seed_everything(seed: int):
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
 
