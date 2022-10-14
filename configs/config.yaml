@@ -18,13 +18,9 @@ common:
   output_dir: /home/user/work/output/${exp.version}_${common.timestamp}/
   seed: 42
   debug: False
-  target_col: rating
+  target_col: label
 
 hydra:
   run:
     dir: ${common.output_dir}
 
-features:
-  - CountEncode
-  - OrdinalEncode
-  - Numerical

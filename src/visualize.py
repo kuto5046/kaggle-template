@@ -192,3 +192,15 @@ def plot_importance(
     fig.tight_layout()
     plt.savefig(output_dir + 'importance.png')
     return fig, ax
+
+
+def plot_shap(model, df, feature_cols, plot_type=None):
+    import shap 
+    shap.initjs()
+    explainer = shap.TreeExplainer(model, data=df[feature_cols], check_additivity=False)
+    shap_values = explainer.shap_values(df[feature_cols])
+    shap.summary_plot(shap_values=shap_values,
+                    features=df[feature_cols],
+                    feature_name=feature_cols,
+                    plot_type=plot_type,
+                    )

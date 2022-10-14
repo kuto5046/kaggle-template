@@ -1,5 +1,8 @@
-# tabular-template
-テーブルコンペのテンプレートレポジトリ
+# kaggle-template
+kaggleコンペ用のテンプレートレポジトリ
+
+scriptやyamlを用意しているが基本的にはnotebookで完結することを目指しており、関数をコピペすればkaggle notebookでも実行可能なようにしている
+(そのためhydraは使用していない。便利なので使いたいがnotebookでのいい運用が定まっていない)
 
 ## 環境構築
 dockerで環境構築を行う。
@@ -44,12 +47,16 @@ https://api.slack.com/apps/A014TUBTH8X/incoming-webhooks?
 SLACK_WEBHOOK_URL=<ここにペースト>
 ```
 
-
-
 ## 実験の流れ
-基本的に全実験をscriptで行う
-まずfeature_engineering.pyを実行し特徴量生成を行う。作成された特徴量はfeature_storeに保存される。
+notebookでの実行を想定.1実験1notebook。
 
+1. notebookフォルダにあるテンプレートをexpにcopyする。ファイル名はexp001.ipynbのような形式を想定
+
+
+==========================================================
+scipt実行も元々想定していたが現在はメンテナンスしていない(2022/10/08)
+
+まずfeature_engineering.pyを実行し特徴量生成を行う。作成された特徴量はfeature_storeに保存される。
 ```sh
 python feature_engineering.py
 ```
@@ -59,7 +66,7 @@ config/experiment/にdefault.yamlとの差分を作成しコマンドライン�
 python train.py experiment=example
 ```
 
-
-どうしても現状のコードを残してスッキリ始めたいとなった場合はexp内のフォルダバージョンを繰り上げる。
-
-
+## その他メモ
+- tqdmのループ内ではprintの代わりにtqdm.write()を使うと表示を崩さずprintできる
+- loss:BCELoss, score: F1みたいなパターンだとBCELossのtargetはfloatでF1のtargetはlongである必要があるので注意 
+- 分類は基本CEでマルチラベルとかの場合はBCEを使う
