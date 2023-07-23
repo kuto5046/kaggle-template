@@ -6,10 +6,11 @@ import lightgbm as lgb
 import numpy as np
 from matplotlib_venn import venn2
 import sweetviz as sv
-import pandas_profiling as pdp
 from IPython.display import display_html
 import xgboost
 import lightgbm
+import catboost
+from pathlib import Path
 
 # 欠損値の確認
 def missing_values(data):
@@ -77,15 +78,6 @@ def show_all(df, n=5):
     return None
 
 
-def pd_profiling(df: pd.DataFrame, output_dir: str='./'):
-    """
-    usage:
-    pd_profiling(whole)
-    """
-    profile = pdp.ProfileReport(df)
-    profile.to_file(output_file=output_dir + "profile.html")
-
-
 def sweetviz_report(
     train:pd.DataFrame, 
     test:pd.DataFrame, 
@@ -142,8 +134,8 @@ def plot_venn(train:pd.DataFrame, test:pd.DataFrame, output_dir: str='./'):
 
 
 def plot_importance(
-    models:List[lgb.Booster], 
-    output_dir: str='./',
+    models:List[lgb.Booster] | List[xgboost.core.Booster] | List[catboost.core.CatBoostRegressor] | List[catboost.core.CatBoostClassifier], 
+    output_dir: Path=Path('./'),
     importance_type='gain',
     top_n:int =50,
     ):
@@ -170,6 +162,11 @@ def plot_importance(
             feature_importance = model.get_score(importance_type=importance_type)
             _df['feature_importance'] = feature_importance.values()
             _df['column'] = feature_importance.keys()
+        elif isinstance(model, catboost.core.CatBoostRegressor) or isinstance(model, catboost.core.CatBoostClassifier):
+            _df['feature_importance'] = model.get_feature_importance()
+            _df['column'] = model.feature_names_
+        else:
+            raise NotImplementedError
         _df['fold'] = i + 1
         feature_importance_df = pd.concat([feature_importance_df, _df], 
                                           axis=0, ignore_index=True)
@@ -190,7 +187,7 @@ def plot_importance(
     ax.set_title('Importance')
     ax.grid()
     fig.tight_layout()
-    plt.savefig(output_dir + 'importance.png')
+    plt.savefig(output_dir / 'importance.png')
     return fig, ax
 
 

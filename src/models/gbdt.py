@@ -12,7 +12,7 @@ from lightgbm import early_stopping, log_evaluation, register_logger
 from wandb.lightgbm import wandb_callback as lgb_wandb_callback
 from wandb.xgboost import wandb_callback as xgb_wandb_callback
 from xgboost.callback import EarlyStopping, EvaluationMonitor
-
+from pathlib import Path
 
 def get_model(model_name: str, model_params: dict, num_boost_round: int, cat_cols: list, output_dir: str, callbacks:list):
     """
@@ -63,7 +63,7 @@ def get_callbacks(model_name):
 
 class BaseModel(metaclass=ABCMeta):
 
-    def __init__(self, model_params: dict, num_boost_round: int, cat_cols: list=[], output_dir:str='./', callbacks: list=[]) -> None:
+    def __init__(self, model_params: dict, num_boost_round: int, cat_cols: list=[], output_dir: Path=Path('./'), callbacks: list=[]) -> None:
 
         self.fold = None 
         self.num_boost_round = num_boost_round
@@ -95,12 +95,12 @@ class BaseModel(metaclass=ABCMeta):
 
     def save(self, fold) -> None:
         """モデルの保存を行う"""
-        pickle.dump(self.model, open(f"{self.output_dir}/model_{fold}.pkl" , 'wb'))
+        pickle.dump(self.model, open(self.output_dir / f"model_{fold}.pkl" , 'wb'))
 
 
     def load(self, fold) -> None:
         """モデルの読み込みを行う"""
-        return pickle.load(open(f"{self.output_dir}/model_{fold}.pkl", 'rb'))
+        return pickle.load(open(self.output_dir / f"model_{fold}.pkl", 'rb'))
 
 
 class LGBModel(BaseModel):

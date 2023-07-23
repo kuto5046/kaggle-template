@@ -15,9 +15,9 @@ import pandas as pd
 import requests
 import pickle 
 # .env ファイルをロードして環境変数へ反映
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 
 
 class HydraConfig():

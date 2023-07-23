@@ -11,3 +11,6 @@ params:
   seed: 42
   learning_rate: 0.05
   verbosity: 1
+  # gpuを使用する場合以下を設定
+  # gpu_id: 0
+  # tree_method: gpu_hist

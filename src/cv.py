@@ -4,44 +4,50 @@ from sklearn.model_selection import StratifiedKFold, KFold, GroupKFold
 from sklearn.utils import _deprecate_positional_args  
 
 
+def split_train_valid(train: pd.DataFrame, fold: int):
+    """
+    与えられたfoldをもとにtrainをtrainとvalidに分割する
+    """
+    valid_fold = [fold]
+    _train = train.query('fold not in @valid_fold').reset_index(drop=True).copy()
+    _valid = train.query('fold in @valid_fold').reset_index(drop=True).copy()
+    return _train, _valid
+
+
+def get_fold(_train: pd.DataFrame, cv:list[tuple(np.ndarray, np.ndarray)]):
+    """
+    trainにfoldのcolumnを付与する
+    """
+    train = _train.copy()
+    train['fold'] = -1
+    for fold, (train_idx, valid_idx) in enumerate(cv):
+        train.loc[valid_idx, 'fold'] = fold
+    print(train['fold'].value_counts())
+    return train
+
+
 def get_kfold(train, n_splits, seed=0):
-    fold = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
-    return list(fold.split(X=train))
+    kf = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
+    cv = list(kf.split(X=train))
+    return get_fold(train, cv)
 
 
 def get_stratifiedkfold(train, target_col, n_splits, seed=0):
-    fold = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
-    return list(fold.split(X=train, y=train[target_col]))
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
+    cv = list(skf.split(X=train, y=train[target_col]))
+    return get_fold(train, cv)
 
 
 def get_groupkfold(train, target_col, group_col, n_splits):
     fold = GroupKFold(n_splits=n_splits)
-    return list(fold.split(X=train, y=train[target_col], groups=train[group_col]))
+    cv = list(fold.split(X=train, y=train[target_col], groups=train[group_col]))
+    return get_fold(train, cv)
 
 
 def get_cont_stratifiedkfold(train, target_col, n_splits, q=10, seed=0):
-    fold = ContinuousStratifiedFold(n_splits=n_splits, q=q, shuffle=True, random_state=seed)
-    return list(fold.split(X=train, y=train[target_col]))
-
-
-# hydraを想定
-def get_fold(X, config, y=None, groups=None):
-    """
-    usage:
-    cv = get_fold(train, train['target'], config)
-    for (idx_train, idx_valid) in cv:
-        break
-    """
-    fold = hydra.utils.instantiate(config.cv)
-    fold_name = config.cv._target_.split('.')[-1]
-    if fold_name == 'KFold':
-        return list(fold.split(X=X))
-    elif fold_name == 'StratifiedKFold':
-        return list(fold.split(X=X, y=y, groups=groups))
-    elif fold_name == 'GroupKFold':
-        return list(fold.split(X=X, y=y, groups=groups))
-    elif fold_name == 'ContinuousStratifiedFold':
-        return list(fold.split(X=X, y=y, groups=groups))
+    gkf = ContinuousStratifiedFold(n_splits=n_splits, q=q, shuffle=True, random_state=seed)
+    cv = list(gkf.split(X=train, y=train[target_col]))
+    return get_fold(train, cv)
 
 
 class ContinuousStratifiedFold(StratifiedKFold):

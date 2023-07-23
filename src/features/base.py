@@ -41,43 +41,85 @@ def timer(name):
     print(f'[{name}] done in {time.time() - t0:.0f} s')
 
 
+
 class Feature(metaclass=ABCMeta):
     prefix = ''
     suffix = ''
     dir = '/home/user/work/feature_store/'
+    fold_list = [0, 1, 2, 3, 4]  # 必要に応じて外から上書き
+    """
+    dirとfold listは以下のように外から上書きする
+    Feature.dir = c.feature_dir
+    Feature.fold_list = fold_list  # 特徴量を作成するfoldを指定
+    """
     
     def __init__(self):
+        self.reset()
+
+    def run(self):
+        prefix = self.prefix + '_' if self.prefix else ''
+        suffix = '_' + self.suffix if self.suffix else ''
+        with timer(self.name):
+            # train
+            # こちらは検証時foldごとに作成する特徴量
+            # 保存するファイル名にfoldが含まれている
+            for fold in self.fold_list:
+                self.create_features(fold=fold)
+                
+                if self.train.shape[0] > 0:
+                    self.train.columns = prefix + self.train.columns + suffix
+                    train_path_fold = self.train_path.with_name(f"{self.train_path.stem}_fold{fold}")
+                    self.train.to_pickle(f"{str(train_path_fold)}.pickle")
+
+                if self.valid.shape[0] > 0:
+                    self.valid.columns = prefix + self.valid.columns + suffix  
+                    valid_path_fold = self.valid_path.with_name(f"{self.valid_path.stem}_fold{fold}")
+                    self.valid.to_pickle(f"{str(valid_path_fold)}.pickle")
+
+                # 基本このphaseではself.testは作成しないが
+                # embeddingの次元を揃える必要がある場合はfoldごとにtestの特徴量を作成する必要があるためself.testを作成する
+                if self.test.shape[0] > 0:
+                    self.test.columns = prefix + self.test.columns + suffix  
+                    test_path_fold = self.test_path.with_name(f"{self.test_path.stem}_fold{fold}")
+                    self.test.to_pickle(f"{str(test_path_fold)}.pickle")
+                
+                self.reset()
+
+            # sub用(foldを切らずtrain全体で学習する場合にtrainとtestの特徴量を作成する)
+            # こちらは保存するファイル名にfoldが含まれないことで上記のデータと見分けている
+            self.create_features()
+            if self.train.shape[0] > 0:
+                self.train.columns = prefix + self.train.columns + suffix
+                self.train.to_pickle(f"{str(self.train_path)}.pickle")
+            if self.test.shape[0] > 0:
+                self.test.columns = prefix + self.test.columns + suffix
+                self.test.to_pickle(f"{str(self.test_path)}.pickle")
+        return self
+
+    def reset(self):
         self.name = self.__class__.__name__
         self.train = pd.DataFrame()
+        self.valid = pd.DataFrame()
         self.test = pd.DataFrame()
         self.train_path = Path(self.dir) / f'{self.name}_train'
+        self.valid_path = Path(self.dir) / f'{self.name}_valid'
         self.test_path = Path(self.dir) / f'{self.name}_test'
-    
-    def run(self):
-        with timer(self.name):
-            self.create_features()
-            prefix = self.prefix + '_' if self.prefix else ''
-            suffix = '_' + self.suffix if self.suffix else ''
-            self.train.columns = prefix + self.train.columns + suffix
-            self.test.columns = prefix + self.test.columns + suffix
-        return self
-    
+
     @abstractmethod
-    def create_features(self):
+    def create_features(self, fold:Optional[int]=None):
+        """ 
+        if fold is not None:
+            # for cv
+            _train, _valid = split_train_valid(train, fold)
+            self.train = _train[col].to_numpy()
+            self.valid = _valid[col].to_numpy()
+        else:
+            # for submission
+            self.train = train[col].to_numpy()
+            self.test = test[col].to_numpy()
+        """
         raise NotImplementedError
     
-    def save(self, ext):
-        if ext == 'csv':
-            self.train.to_csv(f"{str(self.train_path)}.csv", index=False)
-            self.test.to_csv(f"{str(self.test_path)}.csv", index=False)
-        elif ext == 'parquet':
-            self.train.to_parquet(f"{str(self.train_path)}.parquet")
-            self.test.to_parquet(f"{str(self.test_path)}.parquet")
-        elif ext == 'pickle':
-            self.train.to_pickle(f"{str(self.train_path)}.pickle")
-            self.test.to_pickle(f"{str(self.test_path)}.pickle")
-        else:
-            ValueError
 
 
 def get_features(namespace):
@@ -86,29 +128,42 @@ def get_features(namespace):
             yield v()
 
 
-def generate_features(namespace, ext: str = 'pickle', overwrite: bool =False):
-    """parquetだとcategoryがfloatになってしまう"""
+def generate_features(namespace, overwrite: bool =False):
     for f in get_features(namespace):
-        if f.train_path.with_suffix(f".{ext}").exists() and f.test_path.with_suffix(f".{ext}").exists() and not overwrite:
+        # foldごとのチェックが面倒なので一番最後に作成されるtestが存在するかで判定する
+        if f.test_path.with_suffix(f".pickle").exists() and not overwrite:
             print(f.name, 'was skipped')
         else:
-            f.run().save(ext)
+            f.run()
 
 
-def load_datasets(feats, input_dir = '/home/user/work/feature_store/', ext='pickle'):
-    if ext == 'csv':
-        train_dfs = [pd.read_csv(f'{input_dir}/{f}_train.csv') for f in feats]
-        test_dfs = [pd.read_csv(f'{input_dir}/{f}_test.csv') for f in feats]
-    elif ext == 'parquet':
-        train_dfs = [pd.read_parquet(f'{input_dir}/{f}_train.parquet') for f in feats]
-        test_dfs = [pd.read_parquet(f'{input_dir}/{f}_test.parquet') for f in feats]
-    elif ext == 'pickle':
-        train_dfs = [pd.read_pickle(f'{input_dir}/{f}_train.pickle') for f in feats]
-        test_dfs = [pd.read_pickle(f'{input_dir}/{f}_test.pickle') for f in feats]
+def load_datasets(feats: list[str], input_dir: Path = Path('/home/user/work/feature_store/'), phase: str='train', fold: Optional[int]=None):
+    """ 
+    testをfoldで区切る必要があるケースがややこしい
+    foldを指定してtestを読む場合まずfoldごとのデータがある前提で読みにいく。ない場合はfoldなしのデータを読む
+    """
+    assert phase in ['train', 'valid', 'test']
+    if phase == 'train':
+        if fold is None:
+            # foldを分割していないtrain全体の特徴量
+            dfs = [pd.read_pickle(input_dir / f'{f}_train.pickle') for f in feats]
+        else:
+            dfs = [pd.read_pickle(input_dir / f'{f}_train_fold{fold}.pickle') for f in feats]
+    elif phase == 'valid':
+        dfs = [pd.read_pickle(input_dir / f'{f}_valid_fold{fold}.pickle') for f in feats]
     else:
-        ValueError
-
-    X_train = pd.concat(train_dfs, axis=1)
-    X_test = pd.concat(test_dfs, axis=1)
-    assert X_train.shape[1]==X_test.shape[1]
-    return X_train, X_test
+        
+        if fold is None:
+            # foldに関係ないtestの特徴量
+            dfs = [pd.read_pickle(input_dir / f'{f}_test_fold{fold}.pickle') for f in feats]
+        else:
+            # foldごとに作成しているtestの特徴量
+            dfs = []
+            for f in feats:
+                if (input_dir / f'{f}_test_fold{fold}.pickle').exists():
+                    dfs.append(pd.read_pickle(input_dir / f'{f}_test_fold{fold}.pickle'))
+                else:
+                    dfs.append(pd.read_pickle(input_dir / f'{f}_test.pickle'))
+    
+    X = pd.concat(dfs, axis=1)
+    return X
