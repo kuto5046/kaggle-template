@@ -38,33 +38,11 @@ wandb login
 ```
 authorizeすることでwandbが利用可能になる
 
-### 通知系
-以下のURLからwebhook URLをコピー
-https://api.slack.com/apps/A014TUBTH8X/incoming-webhooks?
-
-ルートディレクトリに.envファイルを作成し以下のように記載
-```
-SLACK_WEBHOOK_URL=<ここにペースト>
-```
 
 ## 実験の流れ
 notebookでの実行を想定.1実験1notebook。
+notebookフォルダにあるテンプレートをexpにcopyする。ファイル名はexp001.ipynbのような形式を想定
 
-1. notebookフォルダにあるテンプレートをexpにcopyする。ファイル名はexp001.ipynbのような形式を想定
-
-
-==========================================================
-scipt実行も元々想定していたが現在はメンテナンスしていない(2022/10/08)
-
-まずfeature_engineering.pyを実行し特徴量生成を行う。作成された特徴量はfeature_storeに保存される。
-```sh
-python feature_engineering.py
-```
-
-config/experiment/にdefault.yamlとの差分を作成しコマンドライン引数として渡す
-```sh
-python train.py experiment=example
-```
 
 ## その他メモ
 - tqdmのループ内ではprintの代わりにtqdm.write()を使うと表示を崩さずprintできる
