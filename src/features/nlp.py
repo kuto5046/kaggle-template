@@ -3,18 +3,16 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import TruncatedSVD, NMF, LatentDirichletAllocation
-import fasttext
-import fasttext.util
-from gensim.models import KeyedVectors
+import gensim
 import torch
 import transformers
 from transformers import BertTokenizer
 import numpy as np
 import pandas as pd 
 from typing import List 
-import tensorflow as tf
-import tensorflow_text
-import tensorflow_hub as hub
+# import tensorflow as tf
+# import tensorflow_text
+# import tensorflow_hub as hub
 from tqdm import tqdm
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.mixture import GaussianMixture
@@ -84,13 +82,14 @@ class Sentence2Vec():
     encoder = Sentence2Vec(model_file)
     df2 = encoder.vectorize_to_df(df, col, ndim=160)
     """
-    def __init__(self, model_file="./160/wikipedia-160.txt"):
-        self.w2v_model = KeyedVectors.load_word2vec_format(model_file, binary=False)
+    def __init__(self, model_name="glove-wiki-gigaword-100"):
+        self.model = gensim.downloader.load(model_name)
+        self.vector_size = self.model_vector_size
 
-    def vectorize(self, x: str, ndim=160):
+    def vectorize(self, x: str, ndim: int = 160) -> np.array:
         embeddings = [
-            self.w2v_model.get_vector(word)
-            if self.w2v_model.key_to_index.get(word, None) is not None
+            self.model.get_vector(word)
+            if self.model.key_to_index.get(word, None) is not None
             else np.zeros(ndim, dtype=np.float32)
             for word in x.split()
         ]
@@ -99,7 +98,7 @@ class Sentence2Vec():
         else:
             return np.mean(embeddings, axis=0)
 
-    def vectorize_to_df(self,input_df, col, ndim=160):
+    def vectorize_to_df(self, input_df:pd.DataFrame, col: str, ndim: int = 160) -> pd.DataFrame:
         vector = np.stack(
             input_df[col].fillna("").str.replace("\n", "").progress_apply(lambda x: self.vectorize(x, ndim)).to_numpy()
             )
@@ -181,50 +180,50 @@ class SCDVEmbedder(TransformerMixin, BaseEstimator):
         )
 
 
-class UniversalSentenceEncoder():
-    """
-    usage:
-    usencoder = UniversalSentenceEncoder()  # 必要に応じてloadするモデルを変更
-    s1_vec = usencoder.vectorize(whole, col='s1')
-    s2_vec = usencoder.vectorize(whole, col='s2')
-    s1_s2_sim = usencoder.similarity_vectorize(s1_vec, s2_vec)
-    """
-    def __init__(self):
-        self.embedder = hub.load(
-            "https://tfhub.dev/google/universal-sentence-encoder-multilingual/3"
-            )
+# class UniversalSentenceEncoder():
+#     """
+#     usage:
+#     usencoder = UniversalSentenceEncoder()  # 必要に応じてloadするモデルを変更
+#     s1_vec = usencoder.vectorize(whole, col='s1')
+#     s2_vec = usencoder.vectorize(whole, col='s2')
+#     s1_s2_sim = usencoder.similarity_vectorize(s1_vec, s2_vec)
+#     """
+#     def __init__(self):
+#         self.embedder = hub.load(
+#             "https://tfhub.dev/google/universal-sentence-encoder-multilingual/3"
+#             )
 
-    def vectorize(self, input_df: pd.DataFrame, col: str, save: bool=True) -> pd.DataFrame:
-        vector = np.stack(
-            input_df[col].fillna("").progress_apply(
-                lambda x: self.embedder(x).numpy().reshape(-1)
-                ).values
-        )
-        output_df = pd.DataFrame(vector).add_prefix(f'universal_sentence_{col}')
-        if save:
-            output_df.to_pickle(f'universal_sentence_{col}.pkl')
-        return output_df
+#     def vectorize(self, input_df: pd.DataFrame, col: str, save: bool=True) -> pd.DataFrame:
+#         vector = np.stack(
+#             input_df[col].fillna("").progress_apply(
+#                 lambda x: self.embedder(x).numpy().reshape(-1)
+#                 ).values
+#         )
+#         output_df = pd.DataFrame(vector).add_prefix(f'universal_sentence_{col}')
+#         if save:
+#             output_df.to_pickle(f'universal_sentence_{col}.pkl')
+#         return output_df
 
-    def similarity_vectorize(
-        self, 
-        vec1: Union[pd.DataFrame, np.ndarray], 
-        vec2: Union[pd.DataFrame, np.ndarray],
-        save: bool=True) -> pd.DataFrame:
+#     def similarity_vectorize(
+#         self, 
+#         vec1: Union[pd.DataFrame, np.ndarray], 
+#         vec2: Union[pd.DataFrame, np.ndarray],
+#         save: bool=True) -> pd.DataFrame:
 
-        if isinstance(vec1, np.ndarray) & isinstance(vec1, np.ndarray):
-            pass
-        elif isinstance(vec1, pd.DataFrame) & isinstance(vec1, pd.DataFrame):
-            vec1 = vec1.to_numpy()
-            vec2 = vec2.to_numpy()
-        else:
-            TypeError
-        similarity = (vec1 * vec2).sum(axis=1) / (
-            np.linalg.norm(vec1, axis=1) * np.linalg.norm(vec2, axis=1))
-        output_df = pd.DataFrame()
-        output_df['universal_sentence_similarity'] = similarity
-        if save:
-            output_df.to_pickle(f'sentence_vec_similarity.pkl')
-        return output_df
+#         if isinstance(vec1, np.ndarray) & isinstance(vec1, np.ndarray):
+#             pass
+#         elif isinstance(vec1, pd.DataFrame) & isinstance(vec1, pd.DataFrame):
+#             vec1 = vec1.to_numpy()
+#             vec2 = vec2.to_numpy()
+#         else:
+#             TypeError
+#         similarity = (vec1 * vec2).sum(axis=1) / (
+#             np.linalg.norm(vec1, axis=1) * np.linalg.norm(vec2, axis=1))
+#         output_df = pd.DataFrame()
+#         output_df['universal_sentence_similarity'] = similarity
+#         if save:
+#             output_df.to_pickle(f'sentence_vec_similarity.pkl')
+#         return output_df
 
 
 class BertSequenceVectorizer:

@@ -14,6 +14,9 @@ import numpy as np
 import pandas as pd
 import requests
 import pickle 
+import logging
+from pathlib import Path
+from omegaconf import OmegaConf
 # .env ファイルをロードして環境変数へ反映
 # from dotenv import load_dotenv
 
@@ -24,24 +27,30 @@ class HydraConfig():
     """
     hydraによる設定値の取得
     scriptの時はデコレータの方が簡単なのでこちらは使わずnotebookの時に使用することを想定
+
+    usage:
+    model_config = HydraConfig.get_cnf(config_dir=Path('config/model'), config_name='default')
     """
     @staticmethod
-    def get_cnf(config_path, config_name):
-        """
-        設定値の辞書を取得
-        @return
-            cnf: OmegaDict
-        """
-        config_dir = os.path.join(os.getcwd(), config_path)
+    def get_cnf(config_dir: Path | str, config_name: str) -> OmegaConf:
+        # 絶対パスに変換
+        if isinstance(config_dir, str):
+            config_dir = os.path.join(os.getcwd(), config_dir)
+        elif isinstance(config_dir, Path):
+            config_dir = str(config_dir.absolute())
+        else:
+            raise ValueError(f"config_dir is not str or Path. config_dir: {config_dir}")
+
         if not os.path.isdir(config_dir):
             print(f"Can not find file: {config_dir}.")
             sys.exit(-1)
+        
         with hydra.initialize_config_dir(config_dir=config_dir, version_base=None, job_name='exp'):
             cnf = hydra.compose(config_name=config_name)
             return cnf
 
     
-def reduce_mem_usage(df):
+def reduce_mem_usage(df: pd.DataFrame) -> pd.DataFrame:
     """ iterate through all the columns of a dataframe and modify the data type
         to reduce memory usage.        
     """
@@ -50,8 +59,7 @@ def reduce_mem_usage(df):
 
     for col in df.columns:
         col_type = df[col].dtype
-
-        if col_type != object:
+        if col_type not in [object, 'category']:
             c_min = df[col].min()
             c_max = df[col].max()
             if str(col_type)[:3] == 'int':
@@ -108,17 +116,18 @@ def send_slack_message_notification(message):
 
 # errorを通知する関数
 def send_slack_error_notification(message):
-    webhook_url = os.environ['SLACK_WEBHOOK_URL']  
+    webhook_url = os.environ['SLACK_WEBHOOK_URL']
     # no_entry_signは行き止まりの絵文字を出力
     data = json.dumps({"text":":no_entry_sign:" + message})  
     headers = {'content-type': 'application/json'}
     requests.post(webhook_url, data=data, headers=headers)
 
 
-def pickle_save(object, path):
+def pickle_save(object: object, path: Path):
     pickle.dump(object, open(path, 'wb'))
 
-def pickle_load(path):
+
+def pickle_load(path: Path):
     return pickle.load(open(path, 'rb'))
 
 
@@ -132,25 +141,39 @@ def seed_everything(seed: int):
     torch.backends.cudnn.benchmark = False
 
 
+class StreamToLogger:
+    def __init__(self, logger, level):
+        self.logger = logger
+        self.level = level
 
-def imports():
-    for name, val in globals().items():
-        # module imports
-        if isinstance(val, types.ModuleType):
-            yield name, val
+    def write(self, message):
+        if message.rstrip() != "":
+            self.logger.log(self.level, message.rstrip())
 
-            # functions / callables
-        if hasattr(val, '__call__'):
-            yield name, val
+    def flush(self):
+        pass
 
+def get_logger(output_dir: Path, file_name: str = 'result.log'):
+    """ 
+    from src.utils import get_logger
+    logger = get_logger(output_dir)
+    """
+    logger = logging.getLogger('main')
+    logger.setLevel(logging.INFO)
 
-def noglobal(f):
-    '''
-    ref: https://gist.github.com/raven38/4e4c3c7a179283c441f575d6e375510c
-    '''
-    return types.FunctionType(f.__code__,
-                              dict(imports()),
-                              f.__name__,
-                              f.__defaults__,
-                              f.__closure__
-                              )
+    # File handler for outputting to a log file
+    file_handler = logging.FileHandler(output_dir / file_name)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    # Stream handler for outputting to console
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+
+    # Redirect stdout and stderr
+    # sys.stdout = StreamToLogger(logger, logging.INFO)
+    # sys.stderr = StreamToLogger(logger, logging.ERROR)
+
+    return logger 

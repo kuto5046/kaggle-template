@@ -4,6 +4,9 @@ import time
 from pathlib import Path
 from contextlib import contextmanager
 import inspect
+from typing import Optional
+from src.utils import reduce_mem_usage
+
 
 def get_categorical_col(df:pd.DataFrame, skip_cols: list=[]):
     """カテゴリ型のカラム名を取得"""
@@ -23,7 +26,7 @@ def get_numerical_col(df:pd.DataFrame, skip_cols: list=[]):
     skip_colsにはtargetなど特徴量に追加しないものを選択
     """
     num_cols = []
-    numerics = ['int8', 'int16', 'int32', 'int64', 'float16', 'float32', 'float64']
+    numerics = ['int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64', 'float16', 'float32', 'float64']
     for col in df.columns:
         if col in skip_cols:
             continue 
@@ -45,7 +48,7 @@ def timer(name):
 class Feature(metaclass=ABCMeta):
     prefix = ''
     suffix = ''
-    dir = '/home/user/work/feature_store/'
+    dir = '/home/user/work/features/'
     fold_list = [0, 1, 2, 3, 4]  # 必要に応じて外から上書き
     """
     dirとfold listは以下のように外から上書きする
@@ -69,11 +72,13 @@ class Feature(metaclass=ABCMeta):
                 if self.train.shape[0] > 0:
                     self.train.columns = prefix + self.train.columns + suffix
                     train_path_fold = self.train_path.with_name(f"{self.train_path.stem}_fold{fold}")
+                    self.train = reduce_mem_usage(self.train)
                     self.train.to_pickle(f"{str(train_path_fold)}.pickle")
 
                 if self.valid.shape[0] > 0:
                     self.valid.columns = prefix + self.valid.columns + suffix  
                     valid_path_fold = self.valid_path.with_name(f"{self.valid_path.stem}_fold{fold}")
+                    self.valid = reduce_mem_usage(self.valid)
                     self.valid.to_pickle(f"{str(valid_path_fold)}.pickle")
 
                 # 基本このphaseではself.testは作成しないが
@@ -81,6 +86,7 @@ class Feature(metaclass=ABCMeta):
                 if self.test.shape[0] > 0:
                     self.test.columns = prefix + self.test.columns + suffix  
                     test_path_fold = self.test_path.with_name(f"{self.test_path.stem}_fold{fold}")
+                    self.test = reduce_mem_usage(self.test)
                     self.test.to_pickle(f"{str(test_path_fold)}.pickle")
                 
                 self.reset()
@@ -90,9 +96,11 @@ class Feature(metaclass=ABCMeta):
             self.create_features()
             if self.train.shape[0] > 0:
                 self.train.columns = prefix + self.train.columns + suffix
+                self.train = reduce_mem_usage(self.train)
                 self.train.to_pickle(f"{str(self.train_path)}.pickle")
             if self.test.shape[0] > 0:
                 self.test.columns = prefix + self.test.columns + suffix
+                self.test = reduce_mem_usage(self.test)
                 self.test.to_pickle(f"{str(self.test_path)}.pickle")
         return self
 
@@ -121,14 +129,13 @@ class Feature(metaclass=ABCMeta):
         raise NotImplementedError
     
 
-
 def get_features(namespace):
     for k, v in namespace.items():
         if inspect.isclass(v) and issubclass(v, Feature) and not inspect.isabstract(v):
             yield v()
 
 
-def generate_features(namespace, overwrite: bool =False):
+def generate_features(namespace, overwrite: bool = False):
     for f in get_features(namespace):
         # foldごとのチェックが面倒なので一番最後に作成されるtestが存在するかで判定する
         if f.test_path.with_suffix(f".pickle").exists() and not overwrite:
@@ -137,7 +144,16 @@ def generate_features(namespace, overwrite: bool =False):
             f.run()
 
 
-def load_datasets(feats: list[str], input_dir: Path = Path('/home/user/work/feature_store/'), phase: str='train', fold: Optional[int]=None):
+def remove_features(feature_dir: Path):
+    """
+    作成済みの特徴量をすべて削除する
+    """
+    for filepath in list(feature_dir.glob("*")):
+        if filepath.is_file():
+            filepath.unlink()
+
+
+def load_datasets(feats: list[str], input_dir: Path = Path('/home/user/work/features/'), phase: str='train', fold: Optional[int]=None) -> pd.DataFrame:
     """ 
     testをfoldで区切る必要があるケースがややこしい
     foldを指定してtestを読む場合まずfoldごとのデータがある前提で読みにいく。ない場合はfoldなしのデータを読む

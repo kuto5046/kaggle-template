@@ -38,7 +38,7 @@ def get_callbacks(model_name):
         callbacks = [
             early_stopping(stopping_rounds=100, first_metric_only=False, verbose=True),
             log_evaluation(period=100, show_stdv=True),
-            lgb_wandb_callback()
+            # lgb_wandb_callback()  # lightgbm4.0に対応していない
         ]
     elif model_name == 'xgboost':
         callbacks = [
