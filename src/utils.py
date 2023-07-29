@@ -55,8 +55,6 @@ def reduce_mem_usage(df: pd.DataFrame) -> pd.DataFrame:
         to reduce memory usage.        
     """
     start_mem = df.memory_usage().sum() / 1024**2
-    print('Memory usage of dataframe is {:.2f} MB'.format(start_mem))
-
     for col in df.columns:
         col_type = df[col].dtype
         if col_type not in [object, 'category']:
@@ -82,8 +80,8 @@ def reduce_mem_usage(df: pd.DataFrame) -> pd.DataFrame:
             df[col] = df[col].astype('category')
 
     end_mem = df.memory_usage().sum() / 1024**2
-    print('Memory usage after optimization is: {:.2f} MB'.format(end_mem))
-    print('Decreased by {:.1f}%'.format(100 * (start_mem - end_mem) / start_mem))
+    decreate_rate = 100 * (start_mem - end_mem) / start_mem
+    print(f'Before: {start_mem:.2f} After: {end_mem:.2f} Decreased by {decreate_rate:.1f}%')
 
     return df
 

@@ -1,5 +1,5 @@
 name: lightgbm
-num_boost_round: 3000
+num_boost_round: 10000
 params:
   boosting_type: gbdt
   objective : None 

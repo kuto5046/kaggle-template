@@ -78,6 +78,16 @@ def show_all(df, n=5):
     return None
 
 
+def pd_profiling(df: pd.DataFrame, output_dir: Path = Path('./')):
+    """
+    usage:
+    pd_profiling(whole)
+    """
+    import ydata_profiling
+    profile_report = ydata_profiling.ProfileReport(df)
+    profile_report.to_file(output_dir / "report.html")
+
+
 def sweetviz_report(
     train:pd.DataFrame, 
     test:pd.DataFrame, 
