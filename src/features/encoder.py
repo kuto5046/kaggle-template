@@ -1,5 +1,5 @@
 import pandas as pd 
-from sklearn.preprocessing import OrdinalEncoder, LabelEncoder 
+from sklearn.preprocessing import OrdinalEncoder, LabelEncoder, MultiLabelBinarizer
 import numpy as np 
 from typing import List
 from sklearn.model_selection import KFold
@@ -127,3 +127,20 @@ def target_encoder(
                 train.loc[idx_valid, f'{col}_target_enc_{method}'] = train.loc[idx_valid, col].map(group)
     output_cols = [f'{col}_target_enc_{method}' for col in cols for method in methods]
     return train[output_cols], test[output_cols]
+
+
+def multilabel2onehot(df: pd.DataFrame, multilabel_cols: list[str]):
+    """
+    カンマ区切りのデータをonehot化
+    数が多くなる場合はsvdなどで次元圧縮する
+    """
+    multilabel_dfs = []
+    for c in multilabel_cols:
+        list_srs = df[c].fillna('').map(lambda x: x.split(",")).tolist()
+        mlb = MultiLabelBinarizer()
+        ohe_srs = mlb.fit_transform(list_srs)
+        col_df = pd.DataFrame(ohe_srs, columns=[f"ohe_{c}_{name}" for name in mlb.classes_])
+        multilabel_dfs.append(col_df)
+
+    multilabel_df = pd.concat(multilabel_dfs, axis=1) # .astype('category')
+    return multilabel_df
