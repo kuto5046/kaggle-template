@@ -1,5 +1,0 @@
-_target_: src.utils.ContinuousStratifiedFold
-n_splits: 5
-q: 10
-shuffle: True
-random_state: ${common.seed}
