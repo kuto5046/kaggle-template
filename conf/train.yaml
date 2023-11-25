@@ -1,0 +1,39 @@
+# ---------- Overriding hydra default configs ----------
+hydra:
+  job:
+    name: train
+    chdir: true
+  run:
+    dir: ${path.output_dir}/${hydra.job.name}/${exp_name}/single
+  sweep:
+    dir: ${path.output_dir}/${hydra.job.name}/${exp_name}
+    subdir: run${hydra.job.num}
+
+
+defaults:
+  - _self_
+  - model: lgb_binary  # configs/model/から選択 
+  - callbacks: lightgbm
+  - path: local
+
+exp_name: exp001
+comment: "baseline"
+
+use_fold: 
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+
+seed: 42
+debug: False
+threshold: 0.1
+
+features:
+ - NumericalFeature
+ - OrdinalEncode
+ - TextUSEncoderFeature
+
+targets:
+ - Target
