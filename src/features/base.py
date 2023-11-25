@@ -8,8 +8,6 @@ from typing import Optional
 
 import pandas as pd
 
-from src.utils.common import reduce_mem_usage
-
 
 def get_categorical_col(df: pd.DataFrame, skip_cols: list = []):
     """カテゴリ型のカラム名を取得"""
@@ -74,7 +72,7 @@ def timer(name):
 class Feature(metaclass=ABCMeta):
     prefix = ""
     suffix = ""
-    dir = "/home/user/work/features/"
+    dir = "/home/user/work/feature_store/"
     fold_list = [0, 1, 2, 3, 4]  # 必要に応じて外から上書き
     """
     dirとfold listは以下のように外から上書きする
@@ -85,7 +83,7 @@ class Feature(metaclass=ABCMeta):
     def __init__(self):
         self.reset()
 
-    def run(self):
+    def run(self, train: pd.DataFrame, test: pd.DataFrame):
         prefix = self.prefix + "_" if self.prefix else ""
         suffix = "_" + self.suffix if self.suffix else ""
         with timer(self.name):
@@ -93,14 +91,14 @@ class Feature(metaclass=ABCMeta):
             # こちらは検証時foldごとに作成する特徴量
             # 保存するファイル名にfoldが含まれている
             for fold in self.fold_list:
-                self.create_features(fold=fold)
+                self.create_features(train, test, fold=fold)
 
                 if self.train.shape[0] > 0:
                     self.train.columns = prefix + self.train.columns + suffix
                     train_path_fold = self.train_path.with_name(
                         f"{self.train_path.stem}_fold{fold}"
                     )
-                    self.train = reduce_mem_usage(self.train)
+                    # self.train = reduce_mem_usage(self.train)
                     self.train.to_pickle(f"{str(train_path_fold)}.pickle")
 
                 if self.valid.shape[0] > 0:
@@ -108,7 +106,7 @@ class Feature(metaclass=ABCMeta):
                     valid_path_fold = self.valid_path.with_name(
                         f"{self.valid_path.stem}_fold{fold}"
                     )
-                    self.valid = reduce_mem_usage(self.valid)
+                    # self.valid = reduce_mem_usage(self.valid)
                     self.valid.to_pickle(f"{str(valid_path_fold)}.pickle")
 
                 # 基本このphaseではself.testは作成しないが
@@ -117,21 +115,21 @@ class Feature(metaclass=ABCMeta):
                 if self.test.shape[0] > 0:
                     self.test.columns = prefix + self.test.columns + suffix
                     test_path_fold = self.test_path.with_name(f"{self.test_path.stem}_fold{fold}")
-                    self.test = reduce_mem_usage(self.test)
+                    # self.test = reduce_mem_usage(self.test)
                     self.test.to_pickle(f"{str(test_path_fold)}.pickle")
 
                 self.reset()
 
             # sub用(foldを切らずtrain全体で学習する場合にtrainとtestの特徴量を作成する)
             # こちらは保存するファイル名にfoldが含まれないことで上記のデータと見分けている
-            self.create_features()
+            self.create_features(train, test)
             if self.train.shape[0] > 0:
                 self.train.columns = prefix + self.train.columns + suffix
-                self.train = reduce_mem_usage(self.train)
+                # self.train = reduce_mem_usage(self.train)
                 self.train.to_pickle(f"{str(self.train_path)}.pickle")
             if self.test.shape[0] > 0:
                 self.test.columns = prefix + self.test.columns + suffix
-                self.test = reduce_mem_usage(self.test)
+                # self.test = reduce_mem_usage(self.test)
                 self.test.to_pickle(f"{str(self.test_path)}.pickle")
         return self
 
@@ -145,7 +143,7 @@ class Feature(metaclass=ABCMeta):
         self.test_path = Path(self.dir) / f"{self.name}_test"
 
     @abstractmethod
-    def create_features(self, fold: Optional[int] = None):
+    def create_features(self, train: pd.DataFrame, test: pd.DataFrame, fold: Optional[int] = None):
         """
         if fold is not None:
             # for cv
@@ -166,13 +164,13 @@ def get_features(namespace):
             yield v()
 
 
-def generate_features(namespace, overwrite: bool = False):
+def generate_features(namespace, train: pd.DataFrame, test: pd.DataFrame, overwrite: bool = False):
     for f in get_features(namespace):
         # foldごとのチェックが面倒なので一番最後に作成されるtestが存在するかで判定する
         if f.test_path.with_suffix(".pickle").exists() and not overwrite:
             print(f.name, "was skipped")
         else:
-            f.run()
+            f.run(train, test)
 
 
 def remove_features(feature_dir: Path):

@@ -1,26 +1,39 @@
+# ---------- Overriding hydra default configs ----------
+hydra:
+  job:
+    name: train
+    chdir: true
+  run:
+    dir: ${path.output_dir}/${hydra.job.name}/${exp_name}/single
+  sweep:
+    dir: ${path.output_dir}/${hydra.job.name}/${exp_name}
+    subdir: run${hydra.job.num}
+
 
 defaults:
   - _self_
-  - model: lgb_multiclass.yaml  # configs/model/から選択 
-  - cv: skfold.yaml  # configs/cv/から選択
-  - callbacks: lightgbm.yaml
-  - logger: wandb.yaml
+  - model: lgb_binary  # configs/model/から選択 
+  - callbacks: lightgbm
+  - path: local
 
-exp:
-  version: "000"
-  comment: "
-  hello world
-  "
+exp_name: exp001
+comment: "baseline"
 
-common:
-  timestamp: ${now:%M%d-%H%M-%S}
-  input_dir: /home/user/work/input/
-  output_dir: /home/user/work/output/${exp.version}_${common.timestamp}/
-  seed: 42
-  debug: False
-  target_col: label
+use_fold: 
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
 
-hydra:
-  run:
-    dir: ${common.output_dir}
+seed: 42
+debug: False
+threshold: 0.1
 
+features:
+ - NumericalFeature
+ - OrdinalEncode
+ - TextUSEncoderFeature
+
+targets:
+ - Target

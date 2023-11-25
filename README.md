@@ -1,8 +1,6 @@
 # kaggle-template
 kaggleコンペ用のテンプレートレポジトリ
 
-scriptやyamlを用意しているが基本的にはnotebookで完結することを目指しており、関数をコピペすればkaggle notebookでも実行可能なようにしている
-(そのためhydraは使用していない。便利なので使いたいがnotebookでのいい運用が定まっていない)
 
 ## 環境構築
 dockerで環境構築を行う。
@@ -19,12 +17,12 @@ kaggle datasets list
 ```
 
 datasetをdownload
-```
+```bash
 cd input
 kaggle datasets download <DATASET_NAME>
 ```
 解凍(同じ名前のディレクトリを作成してその中に解凍)
-```
+```bash
 unzip <DATASET_NAME>.zip -d <DATASET_NAME>
 ```
 
@@ -39,12 +37,8 @@ wandb login
 authorizeすることでwandbが利用可能になる
 
 
-## 実験の流れ
-notebookでの実行を想定.1実験1notebook。
-notebookフォルダにあるテンプレートをexpにcopyする。ファイル名はexp001.ipynbのような形式を想定
-
-
 ## その他メモ
-- tqdmのループ内ではprintの代わりにtqdm.write()を使うと表示を崩さずprintできる
-- loss:BCELoss, score: F1みたいなパターンだとBCELossのtargetはfloatでF1のtargetはlongである必要があるので注意 
-- 分類は基本CEでマルチラベルとかの場合はBCEを使う
+- pyproject.toml内に以下を追加するとsrc以下のファイルをimportできるようになる
+```toml
+packages = [{include = "src"}]
+```
