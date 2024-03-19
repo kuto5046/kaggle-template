@@ -13,4 +13,4 @@ defaults:
   - _self_
   - path: local
 
-overwrite: false
+phase: train

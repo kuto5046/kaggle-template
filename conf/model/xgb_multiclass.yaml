@@ -1,7 +1,0 @@
-defaults:
-  - xgb_base
-
-params:
-  objective : multi:softmax
-  eval_metric: mlogloss
-  num_class: 10

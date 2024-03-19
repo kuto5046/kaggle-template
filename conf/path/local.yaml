@@ -1,5 +1,6 @@
-input_dir: /home/kuto/kaggle/kaggle-template/input/yukiCup2023Autumn-atmaCup_dataset/yukiCup 2023 Autumn x atmaCup
-output_dir: /home/kuto/kaggle/kaggle-template/output
-feature_dir: /home/kuto/kaggle/kaggle-template/output/feature_store
-model_dir: /home/kuto/kaggle/kaggle-template/output/train
+root_dir: /home/user/work
+input_dir: ${path.root_dir}/input
+output_dir: ${path.root_dir}/output
+feature_dir: ${path.output_dir}/feature_store
+model_dir: ${path.output_dir}/train
 sub_dir: ./

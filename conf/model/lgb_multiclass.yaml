@@ -1,7 +1,0 @@
-defaults:
-  - lgb_base
-
-params:
-  objective : multiclass
-  metric: multi_logloss
-  num_class: 10

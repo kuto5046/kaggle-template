@@ -4,36 +4,27 @@ hydra:
     name: train
     chdir: true
   run:
-    dir: ${path.output_dir}/${hydra.job.name}/${exp_name}/single
+    dir: ${path.output_dir}/${hydra.job.name}/${exp_name}/${run_name}
   sweep:
     dir: ${path.output_dir}/${hydra.job.name}/${exp_name}
     subdir: run${hydra.job.num}
 
-
 defaults:
   - _self_
-  - model: lgb_binary  # configs/model/から選択 
-  - callbacks: lightgbm
   - path: local
+  # - model: example
 
-exp_name: exp001
-comment: "baseline"
+# exp
+exp_name: dummy
+run_name: fold${fold}
+notes: ""
+tags: []
 
-use_fold: 
-  - 0
-  - 1
-  - 2
-  - 3
-  - 4
-
+# common
 seed: 42
-debug: False
-threshold: 0.1
+debug: false
+phase: train
 
-features:
- - NumericalFeature
- - OrdinalEncode
- - TextUSEncoderFeature
-
-targets:
- - Target
+# cv
+n_splits: 5
+fold: 0
