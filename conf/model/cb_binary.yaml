@@ -1,7 +1,0 @@
-name: catboost-classifier
-defaults:
-  - cb_base
-
-params:
-  loss_function : Logloss
-  eval_metric: Logloss

@@ -1,7 +1,0 @@
-name: catboost-regressor
-defaults:
-  - cb_base
-
-params:
-  loss_function : RMSE
-  eval_metric: RMSE

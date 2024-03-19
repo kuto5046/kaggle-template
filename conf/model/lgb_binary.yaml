@@ -1,6 +1,0 @@
-defaults:
-  - lgb_base
-
-params:
-  objective : binary
-  metric: binary_logloss

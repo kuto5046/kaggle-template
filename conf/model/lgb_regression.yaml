@@ -1,6 +1,0 @@
-defaults:
-  - lgb_base
-
-params:
-  objective : regression
-  metric: rmse
