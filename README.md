@@ -4,8 +4,7 @@ kaggleコンペ用のテンプレートレポジトリ
 ## 環境構築
 dockerで環境構築を行う。 
 ```bash
-docker compose build
-docker compose up -d
+docker compose up -d --build
 ```
 あとはvscodeのdevcontainerでコンテナに入って作業する
 
