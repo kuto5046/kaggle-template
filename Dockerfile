@@ -96,7 +96,9 @@ WORKDIR ${HOME}/work/
 
 # install poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
-RUN poetry config virtualenvs.in-project true
+# RUN poetry config virtualenvs.in-project true
 RUN poetry config virtualenvs.prefer-active-python true
-COPY pyproject.toml poetry.lock ./
-RUN poetry install --no-interaction --no-ansi --no-root
+RUN poetry config virtualenvs.create false  # 仮想環境は作らずにグローバルにインストールする
+# dockerfile内でコマンド実行するとimage内に仮想環境が作られるため容量を食う。 速度も遅い気がするのでコンテナ起動して最初に内部でpoetry installするのが良い
+# COPY pyproject.toml poetry.lock ./
+# RUN poetry install --no-interaction --no-ansi  --no-root
