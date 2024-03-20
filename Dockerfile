@@ -99,4 +99,4 @@ RUN curl -sSL https://install.python-poetry.org | python3 -
 RUN poetry config virtualenvs.in-project true
 RUN poetry config virtualenvs.prefer-active-python true
 COPY pyproject.toml poetry.lock ./
-RUN poetry install --no-interaction --no-ansi
+RUN poetry install --no-interaction --no-ansi --no-root
