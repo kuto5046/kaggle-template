@@ -1,12 +1,13 @@
 # kaggle-template
 kaggleコンペ用のテンプレートレポジトリ
 
-
 ## 環境構築
-dockerで環境構築を行う。
-以下のレポジトリに従ってコンテナを作成する。
-https://github.com/kuto5046/docker
-
+dockerで環境構築を行う。 
+```bash
+docker compose build
+docker compose up -d
+```
+あとはvscodeのdevcontainerでコンテナに入って作業する
 
 ## dataset準備
 docker内だとkaggle APIが有効になっている
