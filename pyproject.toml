@@ -3,8 +3,8 @@ name = "kaggle-template"
 version = "0.1.0"
 description = ""
 authors = ["Kyohei Uto <h27.kubb@gmail.com>"]
-readme = "README.md"
 packages = [{include = "src"}]
+package-mode = false  # true: package, false: module
 
 [tool.poetry.dependencies]
 python = "^3.10, <3.12"
