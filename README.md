@@ -2,7 +2,7 @@
 kaggleコンペ用のテンプレートレポジトリ
 
 ## 環境構築
-dockerで環境構築を行う。 
+dockerで環境構築を行う。
 ```bash
 docker compose up -d --build
 ```
@@ -27,18 +27,14 @@ unzip <DATASET_NAME>.zip -d <DATASET_NAME>
 ```
 
 ## 初めにすること
+pre-commitをinstall
+```sh
+uv run pre-commit install
+```
 
-### ログ系
 wandbのprojectをwebから作成
 ターミナルで以下を実行
 ```sh
 wandb login
 ```
 authorizeすることでwandbが利用可能になる
-
-
-## その他メモ
-- pyproject.toml内に以下を追加するとsrc以下のファイルをimportできるようになる
-```toml
-packages = [{include = "src"}]
-```
