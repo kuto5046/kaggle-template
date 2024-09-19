@@ -55,8 +55,6 @@ RUN npm -y install n -g && \
 RUN curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim.appimage
 RUN chmod u+x nvim.appimage
 RUN ./nvim.appimage --appimage-extract
-# RUN ./squashfs-root/AppRun --version
-# RUN sudo mv squashfs-root /
 RUN sudo ln -s /squashfs-root/AppRun /usr/bin/nvim
 
 # install just
@@ -74,31 +72,25 @@ USER ${DOCKER_USER}
 
 # 環境変数設定
 ENV HOME=/home/${DOCKER_USER}
-ENV PATH ${HOME}/.local/bin:$PATH
-ENV PATH /usr/bin:$PATH
-ENV PYTHONPATH ${HOME}/work:$PYTHONPATH
 ENV SHELL /usr/bin/zsh
-ENV PYENV_ROOT ${HOME}/.pyenv
-ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 WORKDIR ${HOME}
 
 # install dotfiles
 RUN git clone https://github.com/kuto5046/dotfiles.git
 RUN bash ./dotfiles/.bin/install.sh
 
-# install pyenv
-RUN git clone https://github.com/pyenv/pyenv.git ~/.pyenv
-RUN /usr/bin/zsh -c "source ~/.zshrc" && pyenv install 3.10.12 && pyenv global 3.10.12
-
 # make workdir
 RUN mkdir ${HOME}/work/
 WORKDIR ${HOME}/work/
 
-# install poetry
-RUN curl -sSL https://install.python-poetry.org | python3 -
-# RUN poetry config virtualenvs.in-project true
-RUN poetry config virtualenvs.prefer-active-python true
-RUN poetry config virtualenvs.create false  # 仮想環境は作らずにグローバルにインストールする
-# dockerfile内でコマンド実行するとimage内に仮想環境が作られるため容量を食う。 速度も遅い気がするのでコンテナ起動して最初に内部でpoetry installするのが良い
-# COPY pyproject.toml poetry.lock ./
-# RUN poetry install --no-interaction --no-ansi  --no-root
+# install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN echo 'eval "$(uv generate-shell-completion zsh)"' >> ~/.zshrc
+ENV PATH ${HOME}/.cargo/bin/:$PATH
+# マウント前なので、pyproject.tomlをコピーしてuv syncを実行
+COPY pyproject.toml uv.lock ./
+RUN uv sync
+# 後ほどマウントするため、pyproject.tomlとuv.lockを削除
+RUN rm pyproject.toml uv.lock
+# pre-commit install
+# RUN uv run pre-commit install
