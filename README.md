@@ -15,7 +15,7 @@ uvを利用している。コンテナ起動時は仮想環境が作られてい
 uv sync
 ```
 
-pre-commitでformatter, linter, type checkerを適用している
+pre-commitでformatter, linter, type checkerを適用している  
 以下を実行するとpre-commitが有効になる。必要に応じて`.pre-commit-config.yaml`を編集する
 ```sh
 uv run pre-commit install
@@ -65,9 +65,9 @@ exp/exp001
 ├── inference.py         # 推論コード
 ├── train.py             # 学習コード
 ```
-exp配下に新しい実験フォルダを作成して1実験1ディレクトリで実施する。
-templateではhydraを使っており、`config.yaml`にパラメータ管理をしている。
-TODO: yamlでパラメータを切り出さずpyファイルでdataclassとして扱った方が簡単で良いかもしれない。
+exp配下に新しい実験フォルダを作成して1実験1ディレクトリで実施する。  
+templateではhydraを使っており、`config.yaml`にパラメータ管理をしている。  
+TODO: yamlでパラメータを切り出さずpyファイルでdataclassとして扱った方が簡単で良いかもしれない。  
 
 ```bash
 uv run python exp/exp001/data_processor.py
@@ -76,7 +76,7 @@ uv run python exp/exp001/inference.py
 ```
 
 ## コマンド実行
-繰り返し行うようなコマンドは`justfile`に記載しタスク化している。
+繰り返し行うようなコマンドは`justfile`に記載しタスク化している。  
 例えばkaggle datasetへのcodeやmodelのアップロードはsrc/tools配下のpythonファイルを編集した上で以下を実行する。
 
 ```bash
