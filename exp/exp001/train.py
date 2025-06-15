@@ -34,15 +34,15 @@ class TrainPipeline:
     def setup_callbacks(self) -> list:
         return []
 
-    def setup_logger(self, fold: int) -> None:
+    def setup_logger(self) -> None:
         wandb.init(
-            project="kaggle-template",
-            entity="kuto5046",
-            name=f"{self.cfg.exp_name}_{self.cfg.run_name}_fold{fold}",
-            group=self.cfg.exp_name,
-            tags=self.cfg.tags,
+            project=self.cfg.wandb.project,
+            entity=self.cfg.wandb.entity,
+            name=self.cfg.wandb.name,
+            group=self.cfg.wandb.group,
+            tags=self.cfg.wandb.tags,
             mode="disabled" if self.cfg.debug else "online",
-            notes=self.cfg.notes,
+            notes=self.cfg.wandb.notes,
         )
 
     def train(self, fold: int) -> None:
@@ -53,7 +53,7 @@ class TrainPipeline:
 
     def run(self) -> None:
         for fold in self.cfg.use_folds:
-            self.setup_logger(fold)
+            self.setup_logger()
             self.setup_dataset(fold)
             self.train(fold)
             self.evaluate()

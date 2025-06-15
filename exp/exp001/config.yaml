@@ -1,16 +1,27 @@
 exp_name: exp001
 run_name: run0  # 互換性を維持できてる場合インクリメントしても良い(parameterのみ変えて実行するときなど)
 notes: "template"
-tags: []
-
-defaults:
-  - _self_
-  - path: local
 
 # common
 seed: 2024
 debug: false
 phase: train  # train, test
+
+# path
+path:
+  output_dir: ${hydra:runtime.cwd}/output  # hydraの実行ディレクトリ
+  input_dir: ${hydra:runtime.cwd}/input  # hydraの実行ディレクトリ
+  model_dir: ${hydra:runtime.cwd}/model  # hydraの実行ディレクトリ
+
+wandb:
+  project: kaggle-template  # wandbのプロジェクト名
+  entity: kuto5046  # wandbのエンティティ名
+  name: ${exp_name}/${run_name}  # wandbのrun名
+  group: ${exp_name}  # wandbのグループ名
+  notes: ${notes}  # wandbのノート
+  tags: []
+
+
 # cv
 n_splits: 5
 use_folds:
@@ -20,7 +31,8 @@ use_folds:
   - 3
   - 4
 
-feature_version: exp001
+# exp単位で共通の設定(runごとに変わるものではない)
+feature_version: ${exp_name} 
 
 # ---------- Overriding hydra default configs ----------
 hydra:
@@ -35,5 +47,3 @@ hydra:
       enabled: true
       format: "[%(asctime)s][%(name)s][%(levelname)s] - %(message)s"
       level: INFO
-  searchpath:
-      - file://conf
