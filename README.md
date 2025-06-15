@@ -2,26 +2,48 @@
 kaggleコンペ用のテンプレートレポジトリ
 
 ## 環境構築
+
 ### コンテナ起動
-dockerで環境構築を行う。環境に応じて`compose.yml`は編集した上で以下を実行
+
+dockerで環境構築を行う。direnvを使用してホスト環境のUIDを自動的にコンテナに反映させる。
+
 ```bash
+# direnvが未インストールの場合はインストール
+# macOS: brew install direnv
+# Ubuntu: sudo apt-get install direnv
+
+# direnvを有効化（初回のみ、使用しているシェルに応じて実行）
+# bash: echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
+# zsh:  echo 'eval "$(direnv hook zsh)"' >> ~/.zshrc
+
+# プロジェクトディレクトリでdirenvを許可
+direnv allow
+
+# 必要に応じて.envファイルを作成（プロジェクト固有の環境変数がある場合）
+# cp .env.example .env
+
+# docker composeでビルド・起動（direnvが自動的にUID等を設定）
 docker compose up -d --build
 ```
+
 あとはvscodeのdevcontainerでコンテナに入って作業する
 
 ### 仮想環境作成
 uvを利用している。コンテナ起動時は仮想環境が作られていないためコンテナに入ったら以下を実行
+
 ```bash
 uv sync
 ```
 
 pre-commitでformatter, linter, type checkerを適用している  
 以下を実行するとpre-commitが有効になる。必要に応じて`.pre-commit-config.yaml`を編集する
+
 ```sh
 uv run pre-commit install
 ```
 
 ### wandb有効化
+
 ターミナルで以下を実行
 ```sh
 wandb login
@@ -65,9 +87,9 @@ exp/exp001
 ├── inference.py         # 推論コード
 ├── train.py             # 学習コード
 ```
+
 exp配下に新しい実験フォルダを作成して1実験1ディレクトリで実施する。  
 templateではhydraを使っており、`config.yaml`にパラメータ管理をしている。  
-TODO: yamlでパラメータを切り出さずpyファイルでdataclassとして扱った方が簡単で良いかもしれない。  
 
 ```bash
 uv run python exp/exp001/data_processor.py
