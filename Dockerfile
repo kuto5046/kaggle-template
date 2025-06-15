@@ -1,5 +1,5 @@
 # pytorch versionに注意
-FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
 
 # 時間設定
 RUN ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
@@ -31,9 +31,7 @@ RUN apt-get -y update && apt-get install -y \
     libreadline6-dev \
     libbz2-dev \
     libssl-dev \
-    libsqlite3-dev \
     libncursesw5-dev \
-    libffi-dev \
     libdb-dev \
     libexpat1-dev \
     zlib1g-dev \
@@ -46,51 +44,43 @@ RUN apt-get -y update && apt-get install -y \
     npm \
     curl
 
-# node js を最新Verにする
+# Update Node.js to latest stable version
 RUN npm -y install n -g && \
     n stable && \
     apt purge -y nodejs npm
 
-# neovim v0.9.1
-RUN curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim.appimage
-RUN chmod u+x nvim.appimage
-RUN ./nvim.appimage --appimage-extract
+# Install Neovim (latest version)
+RUN curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
+RUN chmod u+x nvim-linux-x86_64.appimage
+RUN ./nvim-linux-x86_64.appimage --appimage-extract
 RUN sudo ln -s /squashfs-root/AppRun /usr/bin/nvim
+
 
 # install just
 RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
-# 本当はハードコーディングではなくローカルのidと合わせた方が良い
-# https://qiita.com/yohm/items/047b2e68d008ebb0f001
-ARG DOCKER_UID=1000
-ARG DOCKER_USER="user"
-ARG DOCKER_PASSWORD="kuzira"
+# Install Sheldon (shell prompt manager)
+RUN curl --proto '=https' -fLsS https://rossmacarthur.github.io/install/crate.sh \
+| bash -s -- --repo rossmacarthur/sheldon --to ~/.local/bin
 
 RUN useradd -m --uid ${DOCKER_UID} --groups sudo ${DOCKER_USER} \
   && echo ${DOCKER_USER}:${DOCKER_PASSWORD} | chpasswd
 USER ${DOCKER_USER}
 
-# 環境変数設定
+# Set environment variables
 ENV HOME=/home/${DOCKER_USER}
-ENV SHELL /usr/bin/zsh
+ENV SHELL=/usr/bin/zsh
 WORKDIR ${HOME}
 
 # install dotfiles
 RUN git clone https://github.com/kuto5046/dotfiles.git
 RUN bash ./dotfiles/.bin/install.sh
 
-# make workdir
+# install uv (as DOCKER_USER)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH=${HOME}/.local/bin:$PATH
+RUN echo 'eval "$(uv generate-shell-completion zsh)"' >> ~/.zshrc
+
+# Create and set working directory
 RUN mkdir ${HOME}/work/
 WORKDIR ${HOME}/work/
-
-# install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-RUN echo 'eval "$(uv generate-shell-completion zsh)"' >> ~/.zshrc
-ENV PATH ${HOME}/.cargo/bin/:$PATH
-# マウント前なので、pyproject.tomlをコピーしてuv syncを実行
-COPY pyproject.toml uv.lock ./
-RUN uv sync
-# 後ほどマウントするため、pyproject.tomlとuv.lockを削除
-RUN rm pyproject.toml uv.lock
-# pre-commit install
-# RUN uv run pre-commit install
