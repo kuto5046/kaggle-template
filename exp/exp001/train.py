@@ -41,7 +41,7 @@ class TrainPipeline:
             name=self.cfg.wandb.name,
             group=self.cfg.wandb.group,
             tags=self.cfg.wandb.tags,
-            mode="disabled" if self.cfg.debug else "online",
+            mode=self.cfg.wandb.mode,
             notes=self.cfg.wandb.notes,
         )
 

@@ -19,6 +19,7 @@ wandb:
   name: ${exp_name}/${run_name}  # wandbのrun名
   group: ${exp_name}  # wandbのグループ名
   notes: ${notes}  # wandbのノート
+  mode: online  # wandbのモード online, disabledを想定
   tags: []
 
 
