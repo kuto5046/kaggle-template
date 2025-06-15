@@ -1,110 +1,155 @@
 # kaggle-template
 kaggleコンペ用のテンプレートレポジトリ
 
-## 環境構築
+## クイックスタート
 
-### コンテナ起動
+### 前提条件
 
-dockerで環境構築を行う。direnvを使用してホスト環境のUIDを自動的にコンテナに反映させる。
+- Docker & Docker Compose
+- direnv（自動環境設定のため推奨）
+
+### セットアップ
+
+1. **direnvのインストール**（未インストールの場合）:
+
+   ```bash
+   # macOS
+   brew install direnv
+   
+   # Ubuntu/Debian
+   sudo apt-get install direnv
+   ```
+
+2. **direnvの設定**（初回のみ）:
+
+shell設定ファイルに以下を追加する。(例: `~/.zshrc` または `~/.bashrc`)
+   ```bash
+echo 'eval "$(direnv hook zsh)"' >> ~/.zshrc
+   ```
+
+3. **プロジェクトのクローンとセットアップ**:
+
+   ```bash
+   git clone <your-repo>
+   cd kaggle-template
+   
+   # direnvに環境変数管理を許可
+   direnv allow
+   
+   # オプション: カスタム環境変数の作成
+   cp .env.example .env  # 必要に応じて編集
+   ```
+
+4. **開発環境の起動**:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+5. **VS Codeとの接続**:
+   - Remote-Containers拡張機能を使用して実行中のコンテナにアタッチ
+   - すべての依存関係とツールが事前設定済み
+
+## 開発ワークフロー
+
+### Python環境の初期化
+
+コンテナ内で以下を実行：
 
 ```bash
-# direnvが未インストールの場合はインストール
-# macOS: brew install direnv
-# Ubuntu: sudo apt-get install direnv
-
-# direnvを有効化（初回のみ、使用しているシェルに応じて実行）
-# bash: echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
-# zsh:  echo 'eval "$(direnv hook zsh)"' >> ~/.zshrc
-
-# プロジェクトディレクトリでdirenvを許可
-direnv allow
-
-# 必要に応じて.envファイルを作成（プロジェクト固有の環境変数がある場合）
-# cp .env.example .env
-
-# docker composeでビルド・起動（direnvが自動的にUID等を設定）
-docker compose up -d --build
-```
-
-あとはvscodeのdevcontainerでコンテナに入って作業する
-
-### 仮想環境作成
-uvを利用している。コンテナ起動時は仮想環境が作られていないためコンテナに入ったら以下を実行
-
-```bash
+# 仮想環境の作成と依存関係のインストール
 uv sync
-```
 
-pre-commitでformatter, linter, type checkerを適用している  
-以下を実行するとpre-commitが有効になる。必要に応じて`.pre-commit-config.yaml`を編集する
-
-```bash
+# pre-commitフックの設定
 uv run pre-commit install
 ```
 
-### wandb有効化
+### 実験追跡
 
-ターミナルで以下を実行
 ```bash
+# Weights & Biasesにログイン
 wandb login
 ```
-authorizeすることでwandbが利用可能になる
 
-### dataset準備
-docker内だとkaggle APIが有効になっている
-
-dataset一覧チェック
+### データセット管理
 
 ```bash
+# 利用可能なデータセットの一覧表示
 kaggle datasets list
-```
-datasetをdownload
-```bash
+
+# コンペティションデータのダウンロード
 cd input
 kaggle datasets download <DATASET_NAME>
-```
-解凍(同じ名前のディレクトリを作成してその中に解凍)
-```bash
+
+# 整理されたディレクトリに展開
 unzip <DATASET_NAME>.zip -d <DATASET_NAME>
 ```
 
-## ディレクトリ構成
-主要なもののみ記載
+## プロジェクト構成
+
 ```
-root
-├── exp/                 # 実験コードをここで管理する
-├── input/               # コンペ用のデータセット置き場
-├── notebook/            # EDAやdebug用のnotebookをおく
-├── output/              # 特徴量やモデルなどの実験による出力を格納する 
-├── src                  # 実験に依存しないコードをここに置く(kaggle datasetへのuploadなど)
+kaggle-template/
+├── exp/                 # 実験ディレクトリ (exp001, exp002, ...)
+├── input/               # コンペティションデータセット
+├── notebook/            # EDA用Jupyterノートブック
+├── output/              # モデル出力、特徴量、予測結果
+├── src/                 # 再利用可能なユーティリティとツール
+├── Dockerfile           # コンテナ設定
+├── compose.yml          # Docker Compose設定
+├── justfile            # タスク自動化
+└── .envrc              # 環境変数
 ```
 
-## 実験方法
+## 実験管理
+
+### 実験構成
+
 実験フォルダの構成は以下。コンペに応じて自由に変更する。
-```
-exp/exp001
-|── configs              # runごとの設定ファイルをおく
+ルール
+- 1実験1ディレクトリ
+- 実験ディレクトリは `exp/exp###` の形式で命名
+- コードの実行は1runごとに分離する。runは同一の実験内で異なる設定やパラメータを試すための単位。
+- 実装コードが大きく変わらない場合は同一exp内でrunを分けて実行する。
+
+```bash
+exp/exp001/
+├── configs/             # runごとの設定ファイルを置く
+│   ├── run0.yaml        # runごとの実験条件やパラメータを記述する
 ├── config.yaml          # 実験で共通するデフォルトの設定値を記述する
 ├── data_processor.py    # データの前処理や特徴量生成などtrain/inferenceの前に実施しておくと良い処理を行う
-├── inference.py         # 推論コード
-├── train.py             # 学習コード
+├── train.py            # 学習
+└── inference.py        # 推論
 ```
 
-exp配下に新しい実験フォルダを作成して1実験1ディレクトリで実施する。  
-templateではhydraを使っており、`config.yaml`にパラメータ管理をしている。  
-1つの実験フォルダ内で複数のrunを行う場合は`configs`ディレクトリにrunごとの設定ファイルを作成する。
-runを分ける例としては、foldを変えて実験する場合や、ハイパーパラメータを変えて実験する場合などがある。
+### 設定管理
+
+このテンプレートは[Hydra](https://hydra.cc/)を使用した設定管理を採用：
+
+- **ベース設定**: `exp/*/config.yaml` - デフォルト実験設定
+- **ラン設定**: `exp/*/configs/*.yaml` - 特定のラン用バリエーション
+- **オーバーライド**: コマンドライン引数が優先
+
+例：
 
 ```bash
-uv run python exp/exp001/data_processor.py
-uv run python exp/exp001/train.py
-uv run python exp/exp001/inference.py
+# 学習率のオーバーライド
+uv run python exp/exp001/train.py model.learning_rate=0.001
+
+# 異なる設定ファイルの使用
+uv run python exp/exp001/train.py --config-name=fold0
 ```
 
-## コマンド実行
-繰り返し行うようなコマンドは`justfile`に記載しタスク化している。  
-例えばkaggle datasetへのcodeやmodelのアップロードはsrc/tools配下のpythonファイルを編集した上で以下を実行する。
+### 出力の管理
+
+- `output/`: モデル、特徴量、予測結果を保存
+- 実験ごとにサブディレクトリを作成して整理
+- 重要なアーティファクトはW&Bにも記録
+
+# タスク自動化
+
+[just](https://github.com/casey/just)を使用して一般的なタスクを自動化している。
 
 ```bash
-just upload
+# 利用可能なコマンドの表示
+just --list
 ```
