@@ -2,7 +2,12 @@ version: '3.8'
 
 services:
   env:
-    build: .
+    build:
+      context: .
+      args:
+        DOCKER_UID: "${DOCKER_UID}"
+        DOCKER_USER: "${DOCKER_USER}"
+        DOCKER_PASSWORD: "${DOCKER_PASSWORD}"
     # cuda用のsetting
     shm_size: '24gb'
     deploy:
