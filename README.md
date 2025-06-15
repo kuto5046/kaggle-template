@@ -38,14 +38,14 @@ uv sync
 pre-commitでformatter, linter, type checkerを適用している  
 以下を実行するとpre-commitが有効になる。必要に応じて`.pre-commit-config.yaml`を編集する
 
-```sh
+```bash
 uv run pre-commit install
 ```
 
 ### wandb有効化
 
 ターミナルで以下を実行
-```sh
+```bash
 wandb login
 ```
 authorizeすることでwandbが利用可能になる
@@ -54,7 +54,8 @@ authorizeすることでwandbが利用可能になる
 docker内だとkaggle APIが有効になっている
 
 dataset一覧チェック
-```
+
+```bash
 kaggle datasets list
 ```
 datasetをdownload
@@ -82,7 +83,8 @@ root
 実験フォルダの構成は以下。コンペに応じて自由に変更する。
 ```
 exp/exp001
-├── config.yaml          # 設定値ファイルを記述する
+|── configs              # runごとの設定ファイルをおく
+├── config.yaml          # 実験で共通するデフォルトの設定値を記述する
 ├── data_processor.py    # データの前処理や特徴量生成などtrain/inferenceの前に実施しておくと良い処理を行う
 ├── inference.py         # 推論コード
 ├── train.py             # 学習コード
@@ -90,6 +92,8 @@ exp/exp001
 
 exp配下に新しい実験フォルダを作成して1実験1ディレクトリで実施する。  
 templateではhydraを使っており、`config.yaml`にパラメータ管理をしている。  
+1つの実験フォルダ内で複数のrunを行う場合は`configs`ディレクトリにrunごとの設定ファイルを作成する。
+runを分ける例としては、foldを変えて実験する場合や、ハイパーパラメータを変えて実験する場合などがある。
 
 ```bash
 uv run python exp/exp001/data_processor.py
