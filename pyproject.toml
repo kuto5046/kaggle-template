@@ -3,11 +3,9 @@ name = "kaggle-template"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
@@ -39,4 +37,4 @@ dependencies = [
 packages = ["exp", "src"]
 
 [tool.uv]
-extra-index-url = ["https://download.pytorch.org/whl/cu118"]
+extra-index-url = ["https://download.pytorch.org/whl/cu121"]
