@@ -55,9 +55,6 @@ RUN npm -y install n -g && \
     n stable && \
     apt purge -y nodejs npm
 
-# claude-code
-RUN npm install -g @anthropic-ai/claude-code
-
 # Install Neovim (latest version)
 RUN curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
 RUN chmod u+x nvim-linux-x86_64.appimage
@@ -83,6 +80,14 @@ RUN bash ./dotfiles/.bin/install.sh
 # Install Sheldon (shell prompt manager)
 RUN curl --proto '=https' -fLsS https://rossmacarthur.github.io/install/crate.sh \
 | bash -s -- --repo rossmacarthur/sheldon --to ~/.local/bin
+
+# claude-code
+RUN npm list -g --depth=0 > ~/npm-global-packages.txt \
+    && mkdir -p ~/.npm-global \
+    && npm config set prefix ~/.npm-global \
+    && echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc \
+    && /usr/bin/zsh -c "source ~/.zshrc" \
+    && npm install -g @anthropic-ai/claude-code
 
 # install uv (as DOCKER_USER)
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh

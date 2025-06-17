@@ -15,7 +15,7 @@ kaggleコンペ用のテンプレートレポジトリ
    ```bash
    # macOS
    brew install direnv
-   
+
    # Ubuntu/Debian
    sudo apt-get install direnv
    ```
@@ -32,12 +32,10 @@ echo 'eval "$(direnv hook zsh)"' >> ~/.zshrc
    ```bash
    git clone <your-repo>
    cd kaggle-template
-   
-   # direnvに環境変数管理を許可
+
+   # 環境変数設定
+   cp .env.example .env
    direnv allow
-   
-   # オプション: カスタム環境変数の作成
-   cp .env.example .env  # 必要に応じて編集
    ```
 
 4. **開発環境の起動**:
@@ -48,7 +46,6 @@ echo 'eval "$(direnv hook zsh)"' >> ~/.zshrc
 
 5. **VS Codeとの接続**:
    - Remote-Containers拡張機能を使用して実行中のコンテナにアタッチ
-   - すべての依存関係とツールが事前設定済み
 
 ## 開発ワークフロー
 
