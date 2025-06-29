@@ -46,9 +46,9 @@ uv run streamlit run visualizer.py --server.address 0.0.0.0
 """
 
 [env]
-PYTHONPATH="."
+PYTHONPATH = "."
 # Docker user configuration
-DOCKER_PASSWORD="kuzira"
+DOCKER_PASSWORD = "kuzira"
 
 [tools]
 neovim = "latest"
