@@ -44,21 +44,6 @@ RUN apt-get -y update && apt-get install -y \
     npm \
     curl
 
-# Update Node.js to latest stable version
-RUN npm -y install n -g && \
-    n stable && \
-    apt purge -y nodejs npm
-
-# Install Neovim (latest version)
-RUN curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
-RUN chmod u+x nvim-linux-x86_64.appimage
-RUN ./nvim-linux-x86_64.appimage --appimage-extract
-RUN sudo ln -s /squashfs-root/AppRun /usr/bin/nvim
-
-
-# install just
-RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
-
 # Install Sheldon (shell prompt manager)
 RUN curl --proto '=https' -fLsS https://rossmacarthur.github.io/install/crate.sh \
 | bash -s -- --repo rossmacarthur/sheldon --to ~/.local/bin
@@ -72,14 +57,11 @@ ENV HOME=/home/${DOCKER_USER}
 ENV SHELL=/usr/bin/zsh
 WORKDIR ${HOME}
 
+# Install mise
+RUN curl https://mise.run | sh
 # install dotfiles
 RUN git clone https://github.com/kuto5046/dotfiles.git
 RUN bash ./dotfiles/.bin/install.sh
-
-# install uv (as DOCKER_USER)
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH=${HOME}/.local/bin:$PATH
-RUN echo 'eval "$(uv generate-shell-completion zsh)"' >> ~/.zshrc
 
 # Create and set working directory
 RUN mkdir ${HOME}/work/

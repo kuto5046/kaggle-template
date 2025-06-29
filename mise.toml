@@ -1,0 +1,60 @@
+[tasks.docker-build]
+description = "Build the Docker image"
+run = """
+export DOCKER_UID=$(id -u)
+export DOCKER_USER=${USER}
+docker compose up -d --build
+"""
+
+[tasks.uv-setup]
+description = "Setup the UV environment"
+run = """
+uv sync
+uv run pre-commit install
+"""
+
+[tasks.fmt]
+description = "Format code using ruff"
+run = """
+uv run ruff format .
+uv run ruff check --fix .
+"""
+
+[tasks.type-check]
+description = "Type check code using mypy"
+run = """
+uv run mypy .
+"""
+
+[tasks.test]
+description = "Run tests using pytest"
+run = """
+uv run pytest tests
+"""
+
+[tasks.upload]
+description = "Upload code and model to Kaggle dataset"
+run = """
+uv run python src/tools/upload_code.py
+uv run python src/tools/upload_model.py
+"""
+
+[tasks.streamlit]
+description = "Run the Streamlit app"
+run = """
+uv run streamlit run visualizer.py --server.address 0.0.0.0
+"""
+
+[env]
+PYTHONPATH="."
+# Docker user configuration
+DOCKER_PASSWORD="kuzira"
+
+[tools]
+neovim = "latest"
+node = "latest"
+"npm:@anthropic-ai/claude-code" = "latest"
+"npm:@google/gemini-cli" = "latest"
+pre-commit = "latest"
+uv = "latest"
+
