@@ -1,6 +1,11 @@
 # pytorch versionに注意
 FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
 
+# Define build arguments
+ARG DOCKER_UID
+ARG DOCKER_USER
+ARG DOCKER_PASSWORD
+
 # 時間設定
 RUN ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
 
@@ -42,7 +47,8 @@ RUN apt-get -y update && apt-get install -y \
     xonsh \
     nodejs \
     npm \
-    curl
+    curl \
+    direnv
 
 # Install Sheldon (shell prompt manager)
 RUN curl --proto '=https' -fLsS https://rossmacarthur.github.io/install/crate.sh \
