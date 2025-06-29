@@ -64,7 +64,9 @@ ENV SHELL=/usr/bin/zsh
 WORKDIR ${HOME}
 
 # Install mise
-RUN curl https://mise.run | sh
+RUN curl https://mise.run | sh \
+  && echo 'eval "$(mise activate zsh)"' >> ~/.zshrc
+
 # install dotfiles
 RUN git clone https://github.com/kuto5046/dotfiles.git
 RUN bash ./dotfiles/.bin/install.sh
