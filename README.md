@@ -37,7 +37,7 @@ mise install
 
 コンテナ内で以下を実行
 ```bash
-mise run uv setup
+mise run uv-setup
 ```
 
 ### 実験追跡
