@@ -20,16 +20,16 @@ services:
       # modeを使えばできそうだけどうまくいかなかったので保留
       - type: bind
         source: ./
-        target: /home/user/work/
+        target: /home/${DOCKER_USER}/work/
       - type: bind
         source: ~/.ssh/
-        target: /home/user/.ssh/
+        target: /home/${DOCKER_USER}/.ssh/
       - type: bind
         source: ~/.kaggle/
-        target: /home/user/.kaggle/
+        target: /home/${DOCKER_USER}/.kaggle/
       # - type: bind
       #   source: /mnt/ssd/kaggle-comp/output/  # TODO: ここは適宜変更
-      #   target: /home/user/work/output/
+      #   target: /home/${DOCKER_USER}/work/output/
     ports:
       - 8888:8888
       - 8501:8501

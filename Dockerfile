@@ -44,19 +44,16 @@ RUN apt-get -y update && apt-get install -y \
     libgdbm-dev \
     libmpdec-dev \
     zsh \
-    xonsh \
-    nodejs \
-    npm \
-    curl \
-    direnv
+    curl
 
-# Install Sheldon (shell prompt manager)
-RUN curl --proto '=https' -fLsS https://rossmacarthur.github.io/install/crate.sh \
-| bash -s -- --repo rossmacarthur/sheldon --to ~/.local/bin
 
 RUN useradd -m --uid ${DOCKER_UID} --groups sudo ${DOCKER_USER} \
   && echo ${DOCKER_USER}:${DOCKER_PASSWORD} | chpasswd
 USER ${DOCKER_USER}
+
+# Install Sheldon (shell prompt manager)
+RUN curl --proto '=https' -fLsS https://rossmacarthur.github.io/install/crate.sh \
+| bash -s -- --repo rossmacarthur/sheldon --to ~/.local/bin
 
 # Set environment variables
 ENV HOME=/home/${DOCKER_USER}

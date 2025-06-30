@@ -49,6 +49,8 @@ uv run streamlit run visualizer.py --server.address 0.0.0.0
 PYTHONPATH = "."
 # Docker user configuration
 DOCKER_PASSWORD = "kuzira"
+# 必要に応じて.envファイルを使用して環境変数を設定(機密情報など)
+# _.file = '.env'
 
 [tools]
 neovim = "latest"
@@ -57,4 +59,3 @@ node = "latest"
 "npm:@google/gemini-cli" = "latest"
 pre-commit = "latest"
 uv = "latest"
-
